@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Numbers</title>
+  <style>
+  body{margin:0px;padding:0px;font-family:helvetica;}
+  canvas{margin:0px;padding:0px}
+    th{
+      text-align:left;
+      font-size:15px;font-weight:regular;
+    }
+  h1{font-size:18px;font-weight:regular;}
+  p{font-size:12px;font-weight:regular;}
+  </style>
+</head>
+<body>
+<br />
+<center><canvas id="game" width="800" height="800"></canvas></center>
+  <script>
+
+  var frameTime=1000/30;
+
+  var GAME=0;
+  var SCORE=1;
+  var mode=GAME;
+
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  canvas.addEventListener("mousedown", mouseClicked, false);
+
+  var hiscore=0;
+  var width=800;
+  var height=900;
+  var blockSize=100;
+
+  canvas.width = 800;
+  canvas.height = 900;
+  canvas.style.width = "400px";
+  canvas.style.height = "450px";
+
+  if(localStorage["numbers-hiscore"]==null){
+    localStorage["numbers-hiscore"]=0;
+    hiscore=0;
+  }else{
+    hiscore=parseInt(localStorage["numbers-hiscore"]);
+  }
+
+  function getNewBlockType(){
+    if(Math.random()<0.025){
+      if(Math.random()<0.3)return 10000;
+      if(Math.random()<0.3)return 10001;
+      return 10002;
+    }else{
+      return Math.floor(Math.random()*4+1);
+    }
+  }
+
+  var blocks=new Array();
+  for(var i=0;i<8*8;i++){
+    blocks.push({
+      number:getNewBlockType()
+    });
+  }
+
+  function mouseClicked(event){ 
+    if(mode==GAME){
+      var x = event.x;
+      var y = event.y;
+
+      x -= canvas.offsetLeft;
+      y -= canvas.offsetTop;
+      x=x*2;
+      y=y*2;
+      if(y>blockSize){
+        var bx=Math.floor(x/blockSize);
+        var by=Math.floor((y-blockSize)/blockSize);
+        blockClicked(bx,by);
+      }
+    }
+  }
+
+  var markCount=0;
+
+  function collapseBlocks(){
+    var swapped=false;
+    for(var ix=0;ix<8;ix++){
+        for(var iy=7;iy>0;iy--){
+          var b=blocks[ix+iy*8];
+          if(b.number==-1){
+            var b2=blocks[ix+(iy-1)*8];
+            if(b2.number>-1){
+              blocks[ix+iy*8]=b2;
+              blocks[ix+(iy-1)*8]=b;
+              swapped=true;
+            }
+          }
+        }
+      
+    }
+    if(swapped){
+      scheduleFunction(frameTime,collapseBlocks);
+    }else{
+      scheduleFunction(frameTime,fillEmptyBlocks);
+    }
+  }
+
+  function fillEmptyBlocks(){
+    var fill=0;
+    for(var i=0;i<8;i++){
+      if(blocks[i].number==-1){
+        blocks[i].number=getNewBlockType();
+        fill++;
+      }
+    }
+    if(fill>0){
+      scheduleFunction(frameTime,collapseBlocks);
+    }
+  }
+
+  var multiplier=1;
+
+  function traverse(x,y,number){
+    if(x<0 || x>7)return;
+    if(y<0 || y>7)return;
+    var b=blocks[x+y*8];
+    if((b.number==number || b.number>=10000) && !b.mark){
+      if(b.number==10000)multiplier*=2;
+      if(b.number==10001)multiplier*=3;
+      if(b.number==10002)multiplier*=4;
+      b.mark=true;
+      markCount++;
+      traverse(x-1,y,number);
+      traverse(x+1,y,number);
+      traverse(x,y-1,number);
+      traverse(x,y+1,number);
+    }
+  }
+
+  function blockClicked(x,y){
+    multiplier=1;
+    for(var i=0;i<blocks.length;i++){
+      blocks[i].mark=false;
+    }
+    var num=blocks[x+y*8].number;
+    if(num>=10000){
+      // For now just return
+      return;
+    }
+    markCount=0;
+    var scoreAdd=0;
+    traverse(x,y,num);
+    if(markCount>2){
+      for(var i=0;i<blocks.length;i++){
+        if(blocks[i].mark){
+          blocks[i].number=-1;
+          score+=num*multiplier;
+          if(score>hiscore){
+            hiscore=score;
+            localStorage["numbers-hiscore"]=hiscore;
+          }
+          scoreAdd+=num*multiplier;
+        }
+      }
+      addScoreText(x*blockSize+blockSize/2,(y+1)*blockSize+blockSize/2,scoreAdd);
+      scheduleFunction(frameTime,function(){
+        blocks[x+y*8].number=num+1;
+        scheduleFunction(frameTime,collapseBlocks);
+      });
+    }
+  }
+
+
+  var intervalID = -1;
+  var QueueNewFrame = function () {
+      if (window.requestAnimationFrame)
+          window.requestAnimationFrame(renderingLoop);
+      else if (window.msRequestAnimationFrame)
+          window.msRequestAnimationFrame(renderingLoop);
+      else if (window.webkitRequestAnimationFrame)
+          window.webkitRequestAnimationFrame(renderingLoop);
+      else if (window.mozRequestAnimationFrame)
+          window.mozRequestAnimationFrame(renderingLoop);
+      else if (window.oRequestAnimationFrame)
+          window.oRequestAnimationFrame(renderingLoop);
+      else {
+          QueueNewFrame = function () {
+          };
+          intervalID = window.setInterval(renderingLoop, 16.7);
+      }
+  };
+
+  var colors=new Array();
+
+  for(var i=0;i<5;i++){
+    colors.push("rgb("+(50+i*40)+",200,"+(250-i*40)+")");
+  }
+  for(var i=0;i<5;i++){
+    colors.push("rgb(250,"+(200-i*40)+",50)");
+  }
+  for(var i=0;i<5;i++){
+    colors.push("rgb(250,0,"+(50+i*40)+")");
+  }
+
+
+
+
+
+  function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex ;
+
+    // While there remain elements to shuffle...
+    while (0 !== currentIndex) {
+
+      // Pick a remaining element...
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+
+      // And swap it with the current element.
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+
+    return array;
+  }
+  shuffle(blocks);
+
+  function roundRect(x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();       
+  }
+
+  function renderBlock(x,y,number){
+    if(number==-1)return;
+    // render piece
+    ctx.fillStyle="rgba(0,0,0,0.125)";
+    roundRect(x+4,y+4+4,blockSize-8,blockSize-8,16);
+    ctx.fill();
+
+    if(number>=10000){
+      ctx.fillStyle="#FFFFFF";
+    }else if(number<colors.length){
+      ctx.fillStyle=colors[number];
+    }else{
+      ctx.fillStyle=colors[colors.length-1];
+    }
+    // ctx.fillRect(x+4,y+4,blockSize-8,blockSize-8);
+    roundRect(x+4,y+4,blockSize-8,blockSize-8,16);
+    ctx.fill();
+
+    if(number>=10000){
+       // render number
+      ctx.font="26px helvetica";
+      ctx.textAlign="center";
+      ctx.fillStyle="#000000";
+      var text="x2";
+      if(number==10001){
+        text="x3";
+      }else if(number==10002){
+        text="x4";
+      }
+      ctx.fillText(text,x+blockSize/2,y+blockSize/2+10);
+      var num=10;
+      var slice=(Math.PI*2)/num;
+      for(var i=0;i<num;i++){
+        ctx.fillStyle=colors[i];
+        ctx.beginPath();
+        ctx.arc(x+blockSize/2+Math.cos(i*slice)*32,y+blockSize/2+Math.sin(i*slice)*32,8,0,2*Math.PI,false);
+        ctx.fill();
+      }
+    }else{
+      ctx.fillStyle="rgba(255,255,255,0.25)";
+      if(number==1){
+        ctx.beginPath();
+        ctx.arc(x+blockSize/2,y+blockSize/2,blockSize/2-8,0,2*Math.PI,false);
+        ctx.fill();
+      }
+      if(number==2){
+        ctx.fillRect(x+blockSize/2-20,y+8,40,blockSize-16);
+      }
+      if(number==3){
+        ctx.beginPath();
+        ctx.moveTo(x+blockSize/2,y+8);
+        ctx.lineTo(x+blockSize-8,y+blockSize-8);
+        ctx.lineTo(x+8,y+blockSize-8);
+        ctx.lineTo(x+blockSize/2,y+8);
+        ctx.fill();
+      }
+      if(number==4){
+        ctx.fillRect(x+8,y+8,blockSize-16,blockSize-16);
+      }
+
+      // render number
+      ctx.font="40px helvetica";
+      ctx.textAlign="center";
+      ctx.fillStyle="#FFFFFF";
+      ctx.strokeStyle="rgba(0,0,0,0.25)";
+      ctx.lineWidth=6;
+      ctx.strokeText(number,x+blockSize/2-1,y+blockSize/2+20-4);
+      // use this in a loop later to adjust font size as numbers grow
+      ctx.fillText(number,x+blockSize/2,y+blockSize/2+20-4);
+    }
+  }
+
+  var score=0;
+
+  var flip=0;
+
+  var runQueue=new Array();
+
+  function scheduleFunction(t,f){
+    runQueue.push({
+      time:Date.now()+t,
+      exec:f
+    });
+  }
+
+  var scoreQueue=new Array();
+
+  function addScoreText(x,y,text){
+    scoreQueue.push({
+      x:x,
+      y:y,
+      yAdd:4,
+      text:text
+    });
+  }
+
+  function renderingLoop(){
+    if(runQueue.length>0){
+      if(runQueue[0].time<Date.now()){
+        var job=runQueue.shift();
+        job.exec();
+      }
+    }
+    if(flip%2==0){
+      // Background
+      ctx.fillStyle="#EFEAE0";
+      ctx.fillRect(0,0,width,height);
+
+      // Blocks
+      for(var ix=0;ix<8;ix++){
+        for(var iy=0;iy<8;iy++){
+          renderBlock(ix*100,(iy+1)*100,blocks[ix+iy*8].number);
+        }
+      }
+
+      // Score
+      ctx.font="40px helvetica";
+      ctx.textAlign="left";
+      ctx.fillStyle="#000000";
+      ctx.fillText(score,100,80);
+      ctx.font="30px helvetica";
+      ctx.fillText("Score",100,40);
+      // hiscore
+      ctx.font="40px helvetica";
+      ctx.textAlign="left";
+      ctx.fillStyle="#000000";
+      ctx.fillText(hiscore,300,80);
+      ctx.font="30px helvetica";
+      ctx.fillText("HiScore",300,40);
+
+      flip=0;
+      for(var i=0;i<scoreQueue.length;i++){
+        ctx.fillStyle="rgba(255,255,255,0.25)";
+        ctx.beginPath();
+        ctx.arc(scoreQueue[i].x,scoreQueue[i].y-15,50,0,2*Math.PI,false);
+        ctx.fill();
+        ctx.font="40px helvetica";
+        ctx.textAlign="center";
+        ctx.fillStyle="#FFFFFF";
+        ctx.strokeStyle="#000000";
+        ctx.lineWidth=4;
+        ctx.strokeText(scoreQueue[i].text,scoreQueue[i].x,scoreQueue[i].y);
+        ctx.fillText(scoreQueue[i].text,scoreQueue[i].x,scoreQueue[i].y);
+        scoreQueue[i].y-=scoreQueue[i].yAdd;
+        scoreQueue[i].yAdd+=0.75;
+      }
+      if(scoreQueue.length>0){
+        if(scoreQueue[0].y<0)scoreQueue.shift();
+      }
+    }
+    flip++;
+    QueueNewFrame();
+  }
+
+  renderingLoop();
+  </script>
+  </body>
+</html>
