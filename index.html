@@ -464,21 +464,14 @@
         if(scoreQueue[0].y<0)scoreQueue.shift();
       }
       if(bonusQueue.length>0){
-        ctx.font="40px helvetica";
-        ctx.textAlign="center";
+        ctx.font="25px helvetica";
+        ctx.textAlign="right";
         if(bonusQueue[0].time>1){
-          ctx.strokeStyle="#000000";
+          ctx.fillStyle="#000000";
         }else{
-          ctx.strokeStyle="rgba(0,0,0,"+bonusQueue[0].time+")";
+          ctx.fillStyle="rgba(0,0,0,"+bonusQueue[0].time+")";
         }
-        ctx.lineWidth=4;
-        ctx.strokeText(bonusQueue[0].text,width/2,height/2);
-        if(bonusQueue[0].time>1){
-          ctx.fillStyle="#FFFFFF";
-        }else{
-          ctx.fillStyle="rgba(255,255,255,"+bonusQueue[0].time+")";
-        }
-        ctx.fillText(bonusQueue[0].text,width/2,height/2);
+        ctx.fillText(bonusQueue[0].text,width-20,30);
         bonusQueue[0].time-=0.05;
         if(bonusQueue[0].time<0.01){
           bonusQueue.shift();
