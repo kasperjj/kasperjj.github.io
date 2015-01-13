@@ -201,7 +201,10 @@
           score+=largestPiece*largestPiece;
           addBonusText("New piece "+largestPiece+", "+largestPiece*largestPiece+" points");
         }
-        if(markCount>=10){
+        if(markCount>=15){
+          score+=250;
+          addBonusText("15+ Group, 250 points");
+        }else if(markCount>=10){
           score+=100;
           addBonusText("10+ Group, 100 points");
         }else if(markCount>=5){
