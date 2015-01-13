@@ -34,6 +34,8 @@
   var height=900;
   var blockSize=100;
 
+  var largestPiece=4;
+
   canvas.width = 800;
   canvas.height = 900;
   canvas.style.width = "400px";
@@ -47,7 +49,9 @@
   }
 
   function getNewBlockType(){
-    if(Math.random()<0.025){
+    if(Math.random()<0.01){
+      return 10010;
+    }if(Math.random()<0.025){
       if(Math.random()<0.3)return 10000;
       if(Math.random()<0.3)return 10001;
       return 10002;
@@ -124,7 +128,7 @@
     if(x<0 || x>7)return;
     if(y<0 || y>7)return;
     var b=blocks[x+y*8];
-    if((b.number==number || b.number>=10000) && !b.mark){
+    if((b.number==number || (b.number>=10000 && b.number<10010)) && !b.mark){
       if(b.number==10000)multiplier*=2;
       if(b.number==10001)multiplier*=3;
       if(b.number==10002)multiplier*=4;
@@ -137,13 +141,40 @@
     }
   }
 
+  function explodeBomb(x,y){
+    var queue=new Array();
+
+    for(var ix=-1;ix<2;ix++){
+      if(x+ix>=0 && x+ix<8){
+        for(var iy=-1;iy<2;iy++){
+          if(y+iy>=0 && y+iy<8){
+            var b=blocks[x+ix+(iy+y)*8];
+            if(b.number==10010 && ix+x!=x && iy+y!=y){
+              queue.push({
+                x:ix,y:iy
+              });
+            }
+            b.number=-1;
+          }
+        }    
+      }      
+    }
+    for(var i=0;i<queue.length;i++){
+      explodeBomb(queue[i].x,queue[i].y);
+    }
+  }
+
   function blockClicked(x,y){
     multiplier=1;
     for(var i=0;i<blocks.length;i++){
       blocks[i].mark=false;
     }
     var num=blocks[x+y*8].number;
-    if(num>=10000){
+    if(num==10010){
+      // bomb
+      explodeBomb(x,y);
+      scheduleFunction(frameTime,collapseBlocks);
+    }else if(num>=10000){
       // For now just return
       return;
     }
@@ -165,6 +196,18 @@
       addScoreText(x*blockSize+blockSize/2,(y+1)*blockSize+blockSize/2,scoreAdd);
       scheduleFunction(frameTime,function(){
         blocks[x+y*8].number=num+1;
+        if(num+1>largestPiece){
+          largestPiece=num+1;
+          score+=largestPiece*largestPiece;
+          addBonusText("New piece "+largestPiece+", "+largestPiece*largestPiece+" points");
+        }
+        if(markCount>=10){
+          score+=100;
+          addBonusText("10+ Group, 100 points");
+        }else if(markCount>=5){
+          score+=25;
+          addBonusText("5+ Group, 25 points");
+        }
         scheduleFunction(frameTime,collapseBlocks);
       });
     }
@@ -259,26 +302,51 @@
     ctx.fill();
 
     if(number>=10000){
-       // render number
-      ctx.font="26px helvetica";
-      ctx.textAlign="center";
-      ctx.fillStyle="#000000";
-      var text="x2";
-      if(number==10001){
-        text="x3";
-      }else if(number==10002){
-        text="x4";
-      }
-      ctx.fillText(text,x+blockSize/2,y+blockSize/2+10);
-      var num=10;
-      var slice=(Math.PI*2)/num;
-      for(var i=0;i<num;i++){
-        ctx.fillStyle=colors[i];
+      if(number<10010){
+         // render number
+        ctx.font="26px helvetica";
+        ctx.textAlign="center";
+        ctx.fillStyle="#000000";
+        var text="x2";
+        if(number==10001){
+          text="x3";
+        }else if(number==10002){
+          text="x4";
+        }
+        ctx.fillText(text,x+blockSize/2,y+blockSize/2+10);
+        var num=10;
+        var slice=(Math.PI*2)/num;
+        for(var i=0;i<num;i++){
+          ctx.fillStyle=colors[i];
+          ctx.beginPath();
+          ctx.arc(x+blockSize/2+Math.cos(i*slice)*32,y+blockSize/2+Math.sin(i*slice)*32,8,0,2*Math.PI,false);
+          ctx.fill();
+        }
+      }else if(number==10010){
+        ctx.strokeStyle="#AA5500";
+        ctx.lineWidth=4;
         ctx.beginPath();
-        ctx.arc(x+blockSize/2+Math.cos(i*slice)*32,y+blockSize/2+Math.sin(i*slice)*32,8,0,2*Math.PI,false);
+        ctx.arc(x+blockSize/2-26,y+30,26,5.5,0,false);
+        ctx.stroke();
+        ctx.fillStyle="#000000";
+        ctx.fillRect(x+blockSize/2-8,y+26,16,16);
+        ctx.fillStyle="#444444";
+        ctx.fillRect(x+blockSize/2-2,y+26,8,16);
+        ctx.fillStyle="#000000";
+        ctx.fillRect(x+blockSize/2-10,y+26,20,4);
+        ctx.beginPath();
+        ctx.arc(x+blockSize/2,y+blockSize/2+8,24,0,2*Math.PI,false);
+        ctx.fill();
+        ctx.fillStyle="#333333";
+        ctx.beginPath();
+        ctx.arc(x+blockSize/2+8,y+blockSize/2,10,0,2*Math.PI,false);
+        ctx.fill();
+        ctx.fillStyle="#666666";
+        ctx.beginPath();
+        ctx.arc(x+blockSize/2+8,y+blockSize/2,4,0,2*Math.PI,false);
         ctx.fill();
       }
-    }else{
+     }else{
       ctx.fillStyle="rgba(255,255,255,0.25)";
       if(number==1){
         ctx.beginPath();
@@ -336,6 +404,12 @@
     });
   }
 
+  var bonusQueue=new Array();
+
+  function addBonusText(text){
+    bonusQueue.push({text:text,time:2.0});
+  }
+
   function renderingLoop(){
     if(runQueue.length>0){
       if(runQueue[0].time<Date.now()){
@@ -388,6 +462,27 @@
       }
       if(scoreQueue.length>0){
         if(scoreQueue[0].y<0)scoreQueue.shift();
+      }
+      if(bonusQueue.length>0){
+        ctx.font="40px helvetica";
+        ctx.textAlign="center";
+        if(bonusQueue[0].time>1){
+          ctx.strokeStyle="#000000";
+        }else{
+          ctx.strokeStyle="rgba(0,0,0,"+bonusQueue[0].time+")";
+        }
+        ctx.lineWidth=4;
+        ctx.strokeText(bonusQueue[0].text,width/2,height/2);
+        if(bonusQueue[0].time>1){
+          ctx.fillStyle="#FFFFFF";
+        }else{
+          ctx.fillStyle="rgba(255,255,255,"+bonusQueue[0].time+")";
+        }
+        ctx.fillText(bonusQueue[0].text,width/2,height/2);
+        bonusQueue[0].time-=0.05;
+        if(bonusQueue[0].time<0.01){
+          bonusQueue.shift();
+        }
       }
     }
     flip++;
