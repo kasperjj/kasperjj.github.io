@@ -3,32 +3,32 @@
 <head>
   <meta charset="utf-8">
   <title>Numbers</title>
+  <script src="flamingo.js"></script>
   <style>
-  body{margin:0px;padding:0px;font-family:helvetica;}
-  canvas{margin:0px;padding:0px}
-    th{
-      text-align:left;
-      font-size:15px;font-weight:regular;
-    }
-  h1{font-size:18px;font-weight:regular;}
-  p{font-size:12px;font-weight:regular;}
+    body{margin:0px;padding:0px;}
   </style>
 </head>
 <body>
-<br />
-<center><canvas id="game" width="800" height="800"></canvas></center>
+<div id="main">
+  <div id="content">
+    <canvas id="canvas"></canvas>
+  </div>
+</div>
   <script>
 
-  var frameTime=1000/30;
-
-  var GAME=0;
-  var SCORE=1;
-  var mode=GAME;
-
-  var canvas = document.getElementById("game");
-  var ctx = canvas.getContext("2d");
-  canvas.addEventListener("mousedown", mouseClicked, false);
-
+  var engine=CreateEngine({
+    fps:30,
+    width:960,
+    height:1704
+  });
+  engine.add("game",{
+    mouseDown:function(event){
+      
+    }
+  });
+  // engine.show("game");
+  engine.start();
+/*
   var hiscore=0;
   var width=800;
   var height=900;
@@ -217,24 +217,7 @@
   }
 
 
-  var intervalID = -1;
-  var QueueNewFrame = function () {
-      if (window.requestAnimationFrame)
-          window.requestAnimationFrame(renderingLoop);
-      else if (window.msRequestAnimationFrame)
-          window.msRequestAnimationFrame(renderingLoop);
-      else if (window.webkitRequestAnimationFrame)
-          window.webkitRequestAnimationFrame(renderingLoop);
-      else if (window.mozRequestAnimationFrame)
-          window.mozRequestAnimationFrame(renderingLoop);
-      else if (window.oRequestAnimationFrame)
-          window.oRequestAnimationFrame(renderingLoop);
-      else {
-          QueueNewFrame = function () {
-          };
-          intervalID = window.setInterval(renderingLoop, 16.7);
-      }
-  };
+
 
   var colors=new Array();
 
@@ -486,16 +469,17 @@
   }
 
   renderingLoop();
+  */
   </script>
   <script>
-  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  /*(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
   (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
   m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
   })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
 
   ga('create', 'UA-58519154-1', 'auto');
   ga('send', 'pageview');
-
+*/
 </script>
   </body>
 </html>
