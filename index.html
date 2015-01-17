@@ -23,11 +23,16 @@
     height:1704
   });
   engine.add("game",{
-    mouseDown:function(event){
-      
+    color:"rgb(200,0,188)",
+    click:function(event){
+      this.color="rgb("+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+")";
+    },
+    render:function(c){
+      c.ctx.fillStyle=this.color;
+      c.ctx.fillRect(0,0,c.width,c.height);
     }
   });
-  // engine.show("game");
+  engine.show("game");
   engine.start();
 /*
   var hiscore=0;

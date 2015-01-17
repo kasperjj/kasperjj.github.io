@@ -38,8 +38,8 @@ function CreateEngine(config){
   	context.ctx = context.canvas.getContext("2d");
   	context.canvas.addEventListener("mousedown", function(event){
   		if(currentScene!=null){
-  			if("mouseDown" in currentScene){
-  				currentScene.mouseDown(event);
+  			if("click" in currentScene){
+  				currentScene.click(event);
   			}
   		}
   	}, false);
