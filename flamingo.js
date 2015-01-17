@@ -36,7 +36,10 @@ function CreateEngine(config){
 	OnResizeCalled();
 
   	context.ctx = context.canvas.getContext("2d");
-  	context.canvas.addEventListener("mousedown", function(event){
+
+  	var clickEvent = ('ontouchstart' in window ? 'touchend' : 'click');
+
+  	context.canvas.addEventListener(clickEvent, function(event){
   		if(currentScene!=null){
   			if("click" in currentScene){
   				currentScene.click(event);
