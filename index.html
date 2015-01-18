@@ -18,6 +18,9 @@
   </div>
 </div>
   <script>
+  var GAME=0;
+  var GAMEOVER=1;
+
   var engine=CreateEngine({
     fps:30,
     width:960,
@@ -25,7 +28,7 @@
   });
   // localStorage["numbers-hiscore"]=0;
   engine.add("game",{
-    
+    mode:GAME,
     hiscore:0,
     score:0,
     blockSize:192,
@@ -43,7 +46,7 @@
         this.hiscore=parseInt(localStorage["numbers-hiscore"]);
       }
       // setup blocks
-      for(var i=0;i<8*8;i++){
+      for(var i=0;i<5*8;i++){
         this.blocks.push({
           number:this.getNewBlockType()
         });
@@ -73,9 +76,9 @@
       }
     },
     traverse:function (x,y,number){
-      if(x<0 || x>7)return;
+      if(x<0 || x>4)return;
       if(y<0 || y>7)return;
-      var b=this.blocks[x+y*8];
+      var b=this.blocks[x+y*5];
       if((b.number==number || (b.number>=10000 && b.number<10010)) && !b.mark){
         if(b.number==10000)this.multiplier*=2;
         if(b.number==10001)this.multiplier*=3;
@@ -90,7 +93,7 @@
     },
     fillEmptyBlocks:function(){
       var fill=0;
-      for(var i=0;i<8;i++){
+      for(var i=0;i<5;i++){
         if(this.blocks[i].number==-1){
           this.blocks[i].number=this.getNewBlockType();
           fill++;
@@ -98,18 +101,21 @@
       }
       if(fill>0){
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
+      }else{
+        // this should be the end of a change loop, check for gameover
+        this.scheduleFunction(this.frameTime,this.checkGameOver);
       }
     },
     collapseBlocks:function(){
       var swapped=false;
-      for(var ix=0;ix<8;ix++){
+      for(var ix=0;ix<5;ix++){
           for(var iy=7;iy>0;iy--){
-            var b=this.blocks[ix+iy*8];
+            var b=this.blocks[ix+iy*5];
             if(b.number==-1){
-              var b2=this.blocks[ix+(iy-1)*8];
+              var b2=this.blocks[ix+(iy-1)*5];
               if(b2.number>-1){
-                this.blocks[ix+iy*8]=b2;
-                this.blocks[ix+(iy-1)*8]=b;
+                this.blocks[ix+iy*5]=b2;
+                this.blocks[ix+(iy-1)*5]=b;
                 swapped=true;
               }
             }
@@ -122,12 +128,31 @@
         this.scheduleFunction(this.frameTime,this.fillEmptyBlocks);
       }
     },
+    checkGameOver:function(){
+      for(var iy=0;iy<8;iy++){
+        for(var ix=0;ix<5;ix++){
+          if(this.blocks[ix+iy*5].number==10010){
+            return false;
+          }
+          this.markCount=0;
+          for(var i=0;i<this.blocks.length;i++){
+            this.blocks[i].mark=false;
+          }
+          this.traverse(ix,iy,this.blocks[ix+iy*5].number);
+          if(this.markCount>2){
+            return false;
+          }
+        }
+      }
+      this.mode=GAMEOVER;
+      return true;
+    },
     blockClicked: function(x,y){
       this.multiplier=1;
       for(var i=0;i<this.blocks.length;i++){
         this.blocks[i].mark=false;
       }
-      var num=this.blocks[x+y*8].number;
+      var num=this.blocks[x+y*5].number;
       if(num==10010){
         // bomb
         this.explodeBomb(x,y);
@@ -156,7 +181,7 @@
         
         this.addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
         this.scheduleFunction(this.frameTime,function(){
-          this.blocks[x+y*8].number=num+1;
+          this.blocks[x+y*5].number=num+1;
           if(num+1>this.largestPiece){
             this.largestPiece=num+1;
             this.score+=this.largestPiece*this.largestPiece;
@@ -185,10 +210,10 @@
       var queue=new Array();
 
       for(var ix=-1;ix<2;ix++){
-        if(x+ix>=0 && x+ix<8){
+        if(x+ix>=0 && x+ix<5){
           for(var iy=-1;iy<2;iy++){
             if(y+iy>=0 && y+iy<8){
-              var b=this.blocks[x+ix+(iy+y)*8];
+              var b=this.blocks[x+ix+(iy+y)*5];
               if(b.number==10010 && ix+x!=x && iy+y!=y){
                 queue.push({
                   x:ix,y:iy
@@ -340,9 +365,9 @@
       ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
 
       // Blocks
-      for(var ix=0;ix<8;ix++){
+      for(var ix=0;ix<5;ix++){
         for(var iy=0;iy<8;iy++){
-          this.renderBlock(ctx,ix*this.blockSize,iy*this.blockSize+(engine.config("height")-8*this.blockSize),this.blocks[ix+iy*8].number);
+          this.renderBlock(ctx,ix*this.blockSize,iy*this.blockSize+(engine.config("height")-8*this.blockSize),this.blocks[ix+iy*5].number);
         }
       }
 
@@ -392,6 +417,15 @@
         if(this.bonusQueue[0].time<0.01){
           this.bonusQueue.shift();
         }
+      }
+      if(this.mode==GAMEOVER){
+        ctx.fillStyle="rgba(0,0,0,0.5)";
+        ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+        ctx.fillRect(0,engine.config("height")/2-100,engine.config("width"),200);
+        ctx.font="80px helvetica";
+        ctx.textAlign="center";
+        ctx.fillStyle="#FFFFFF";
+        ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
       }
     }
   });
