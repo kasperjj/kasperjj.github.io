@@ -13,14 +13,15 @@ function CreateEngine(configArg){
 	canvas.width=config.width;
 	canvas.height=config.height;
 	window.addEventListener("resize", OnResizeCalled, false); 
- 
+ 	var ratio=1;
+
 	function OnResizeCalled() {
 		var actualWidth=window.innerWidth; 
 		var actualHeight=window.innerHeight; 
 		var ratioX=actualWidth/config.width; 
 		var ratioY=actualHeight/config.height; 
 
-		var ratio = Math.min(ratioX, ratioY);
+		ratio = Math.min(ratioX, ratioY);
 		canvas.style.width = config.width*ratio + "px"; 
 		canvas.style.height = config.height*ratio + "px"; 
 	}
@@ -33,7 +34,14 @@ function CreateEngine(configArg){
   	canvas.addEventListener(clickEvent, function(event){
   		if(currentScene!=null){
   			if("click" in currentScene){
-  				currentScene.click(event);
+  				var x = event.x;
+		      	var y = event.y;
+
+		      	x -= canvas.offsetLeft;
+		      	y -= canvas.offsetTop;
+		      	x=Math.floor(x*(1/ratio));
+		      	y=Math.floor(y*(1/ratio));
+  				currentScene.click(x,y);
   			}
   		}
   	}, false);

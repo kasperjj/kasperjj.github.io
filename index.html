@@ -58,7 +58,8 @@
         this.colors.push("rgb(250,0,"+(50+i*40)+")");
       }
     },
-
+    multiplier:1,
+    markCount:0,
     getNewBlockType:function(){
       if(Math.random()<0.01){
         return 10010;
@@ -70,8 +71,84 @@
         return Math.floor(Math.random()*4+1);
       }
     },
+    traverse:function (x,y,number){
+      if(x<0 || x>7)return;
+      if(y<0 || y>7)return;
+      var b=this.blocks[x+y*8];
+      if((b.number==number || (b.number>=10000 && b.number<10010)) && !b.mark){
+        if(b.number==10000)this.multiplier*=2;
+        if(b.number==10001)this.multiplier*=3;
+        if(b.number==10002)this.multiplier*=4;
+        b.mark=true;
+        this.markCount++;
+        this.traverse(x-1,y,number);
+        this.traverse(x+1,y,number);
+        this.traverse(x,y-1,number);
+        this.traverse(x,y+1,number);
+      }
+    },
+    blockClicked: function(x,y){
+      this.multiplier=1;
+      for(var i=0;i<this.blocks.length;i++){
+        this.blocks[i].mark=false;
+      }
+      var num=this.blocks[x+y*8].number;
+      if(num==10010){
+        // bomb
+        // explodeBomb(x,y);
+        // scheduleFunction(frameTime,collapseBlocks);
+      }else if(num>=10000){
+        // For now just return
+        return;
+      }
+      markCount=0;
+      var scoreAdd=0;
+      
+      this.traverse(x,y,num);
+      if(this.markCount>2){
+        for(var i=0;i<this.blocks.length;i++){
+          if(this.blocks[i].mark){
+            this.blocks[i].number=-1;
+            this.score+=num*this.multiplier;
+            if(this.score>this.hiscore){
+              this.hiscore=this.score;
+              localStorage["numbers-hiscore"]=this.hiscore;
+            }
+            scoreAdd+=num*this.multiplier;
+          }
+        }
+        /*
+        addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
+        scheduleFunction(frameTime,function(){
+          blocks[x+y*8].number=num+1;
+          if(num+1>largestPiece){
+            largestPiece=num+1;
+            score+=largestPiece*largestPiece;
+            addBonusText("New piece "+largestPiece+", "+largestPiece*largestPiece+" points");
+          }
+          if(markCount>=15){
+            score+=250;
+            addBonusText("15+ Group, 250 points");
+          }else if(markCount>=10){
+            score+=100;
+            addBonusText("10+ Group, 100 points");
+          }else if(markCount>=5){
+            score+=25;
+            addBonusText("5+ Group, 25 points");
+          }
+          scheduleFunction(frameTime,collapseBlocks);
+        });
+*/
+      }
+    },
 
-    click:function(event){
+    click:function(x,y){
+      var gap=engine.config("height")-this.blockSize*8;
+      if(y>gap){
+        var bx=Math.floor(x/this.blockSize);
+        var by=Math.floor((y-gap)/this.blockSize);
+        this.blockClicked(bx,by);
+      }
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
@@ -203,18 +280,7 @@
 /*
   function mouseClicked(event){ 
     if(mode==GAME){
-      var x = event.x;
-      var y = event.y;
-
-      x -= canvas.offsetLeft;
-      y -= canvas.offsetTop;
-      x=x*2;
-      y=y*2;
-      if(y>this.blockSize){
-        var bx=Math.floor(x/this.this.blockSize);
-        var by=Math.floor((y-this.this.blockSize)/this.this.blockSize);
-        blockClicked(bx,by);
-      }
+      
     }
   }
 
@@ -258,22 +324,7 @@
 
   var multiplier=1;
 
-  function traverse(x,y,number){
-    if(x<0 || x>7)return;
-    if(y<0 || y>7)return;
-    var b=blocks[x+y*8];
-    if((b.number==number || (b.number>=10000 && b.number<10010)) && !b.mark){
-      if(b.number==10000)multiplier*=2;
-      if(b.number==10001)multiplier*=3;
-      if(b.number==10002)multiplier*=4;
-      b.mark=true;
-      markCount++;
-      traverse(x-1,y,number);
-      traverse(x+1,y,number);
-      traverse(x,y-1,number);
-      traverse(x,y+1,number);
-    }
-  }
+  
 
   function explodeBomb(x,y){
     var queue=new Array();
@@ -298,58 +349,7 @@
     }
   }
 
-  function blockClicked(x,y){
-    multiplier=1;
-    for(var i=0;i<blocks.length;i++){
-      blocks[i].mark=false;
-    }
-    var num=blocks[x+y*8].number;
-    if(num==10010){
-      // bomb
-      explodeBomb(x,y);
-      scheduleFunction(frameTime,collapseBlocks);
-    }else if(num>=10000){
-      // For now just return
-      return;
-    }
-    markCount=0;
-    var scoreAdd=0;
-    traverse(x,y,num);
-    if(markCount>2){
-      for(var i=0;i<blocks.length;i++){
-        if(blocks[i].mark){
-          blocks[i].number=-1;
-          score+=num*multiplier;
-          if(score>hiscore){
-            hiscore=score;
-            localStorage["numbers-hiscore"]=hiscore;
-          }
-          scoreAdd+=num*multiplier;
-        }
-      }
-      addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
-      scheduleFunction(frameTime,function(){
-        blocks[x+y*8].number=num+1;
-        if(num+1>largestPiece){
-          largestPiece=num+1;
-          score+=largestPiece*largestPiece;
-          addBonusText("New piece "+largestPiece+", "+largestPiece*largestPiece+" points");
-        }
-        if(markCount>=15){
-          score+=250;
-          addBonusText("15+ Group, 250 points");
-        }else if(markCount>=10){
-          score+=100;
-          addBonusText("10+ Group, 100 points");
-        }else if(markCount>=5){
-          score+=25;
-          addBonusText("5+ Group, 25 points");
-        }
-        scheduleFunction(frameTime,collapseBlocks);
-      });
-    }
-  }
-
+  
 
 
 
