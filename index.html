@@ -27,7 +27,7 @@
     height:1334
   });
 
-  engine.loadImage("background","images/background_2.png");
+  // engine.loadImage("background","images/background_2.png");
   engine.loadImage("piece_1","images/piece_1.png");
   engine.loadImage("piece_2","images/piece_2.png");
   engine.loadImage("piece_3","images/piece_3.png");
@@ -82,7 +82,7 @@
     multiplier:1,
     markCount:0,
     getNewBlockType:function(){
-      if(Math.random()<0.025){
+      if(Math.random()<0.03){
         if(Math.random()<0.3)return 10000;
         if(Math.random()<0.3)return 10001;
         return 10002;
@@ -162,13 +162,27 @@
       this.mode=GAMEOVER;
       return true;
     },
+    addScore:function(scoreAdd){
+      this.score+=scoreAdd;
+      if(this.score>this.hiscore  && this.score<10000000){
+        this.hiscore=this.score;
+        localStorage["numbers-hiscore"]=this.hiscore;
+      }
+    },
     blockClicked: function(x,y){
       this.multiplier=1;
       for(var i=0;i<this.blocks.length;i++){
         this.blocks[i].mark=false;
       }
       var num=this.blocks[x+y*this.columns].number;
-      if(num==10010){
+      if(num==6){
+        // new style bomb
+        this.explodeSideBomb(x,y);
+        this.addScore(250);
+        this.addBonusText("Blow away row, 250 points");
+        this.scheduleFunction(this.frameTime,this.collapseBlocks);
+        return;
+      }else if(num==10010){
         // bomb
         this.explodeBomb(x,y);
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
@@ -185,11 +199,7 @@
         for(var i=0;i<this.blocks.length;i++){
           if(this.blocks[i].mark){
             this.blocks[i].number=-1;
-            this.score+=num*this.multiplier;
-            if(this.score>this.hiscore  && this.score<10000000){
-              this.hiscore=this.score;
-              localStorage["numbers-hiscore"]=this.hiscore;
-            }
+            this.addScore(num*this.multiplier);
             scoreAdd+=num*this.multiplier;
           }
         }
@@ -199,23 +209,19 @@
           this.blocks[x+y*this.columns].number=num+1;
           if(num+1>this.largestPiece){
             this.largestPiece=num+1;
-            this.score+=this.largestPiece*this.largestPiece;
+            this.addScore(this.largestPiece*this.largestPiece);
             this.addBonusText("New piece "+this.largestPiece+", "+this.largestPiece*this.largestPiece+" points");
           }
           if(this.markCount>=15){
-            this.score+=250;
+            this.addScore(250);
             this.addBonusText("15+ Group, 250 points");
           }else if(this.markCount>=10){
-            this.score+=100;
+            this.addScore(100);
             this.addBonusText("10+ Group, 100 points");
           }else if(this.markCount>=5){
-            this.score+=25;
+            this.addScore(25);
             this.addBonusText("5+ Group, 25 points");
           }
-          if(this.score>this.hiscore && this.score<10000000){
-              this.hiscore=this.score;
-              localStorage["numbers-hiscore"]=this.hiscore;
-            }
           this.scheduleFunction(this.frameTime,this.collapseBlocks);
         });
 
@@ -241,6 +247,12 @@
       }
       for(var i=0;i<queue.length;i++){
         this.explodeBomb(queue[i].x,queue[i].y);
+      }
+    },
+    explodeSideBomb:function(x,y){
+      for(var ix=0;ix<this.columns;ix++){
+        var b=this.blocks[ix+y*this.columns];
+        b.number=-1;
       }
     },
     click:function(x,y){
