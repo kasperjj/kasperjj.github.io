@@ -18,7 +18,6 @@
   </div>
 </div>
   <script>
-
   var engine=CreateEngine({
     fps:30,
     width:960,
@@ -30,6 +29,7 @@
     score:0,
     blockSize:192,
     largestPiece:4,
+    frameTime:1000/30,
     blocks:[],
     colors:[],
 
@@ -87,6 +87,40 @@
         this.traverse(x,y+1,number);
       }
     },
+    fillEmptyBlocks:function(){
+      var fill=0;
+      for(var i=0;i<8;i++){
+        if(this.blocks[i].number==-1){
+          this.blocks[i].number=this.getNewBlockType();
+          fill++;
+        }
+      }
+      if(fill>0){
+        this.scheduleFunction(this.frameTime,this.collapseBlocks);
+      }
+    },
+    collapseBlocks:function(){
+      var swapped=false;
+      for(var ix=0;ix<8;ix++){
+          for(var iy=7;iy>0;iy--){
+            var b=this.blocks[ix+iy*8];
+            if(b.number==-1){
+              var b2=this.blocks[ix+(iy-1)*8];
+              if(b2.number>-1){
+                this.blocks[ix+iy*8]=b2;
+                this.blocks[ix+(iy-1)*8]=b;
+                swapped=true;
+              }
+            }
+          }
+        
+      }
+      if(swapped){
+        this.scheduleFunction(this.frameTime,this.collapseBlocks);
+      }else{
+        this.scheduleFunction(this.frameTime,this.fillEmptyBlocks);
+      }
+    },
     blockClicked: function(x,y){
       this.multiplier=1;
       for(var i=0;i<this.blocks.length;i++){
@@ -95,8 +129,8 @@
       var num=this.blocks[x+y*8].number;
       if(num==10010){
         // bomb
-        // explodeBomb(x,y);
-        // scheduleFunction(frameTime,collapseBlocks);
+        this.explodeBomb(x,y);
+        this.scheduleFunction(this.frameTime,this.collapseBlocks);
       }else if(num>=10000){
         // For now just return
         return;
@@ -117,31 +151,56 @@
             scoreAdd+=num*this.multiplier;
           }
         }
-        /*
-        addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
-        scheduleFunction(frameTime,function(){
-          blocks[x+y*8].number=num+1;
-          if(num+1>largestPiece){
-            largestPiece=num+1;
-            score+=largestPiece*largestPiece;
-            addBonusText("New piece "+largestPiece+", "+largestPiece*largestPiece+" points");
+        
+        this.addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
+        this.scheduleFunction(this.frameTime,function(){
+          this.blocks[x+y*8].number=num+1;
+          if(num+1>this.largestPiece){
+            this.largestPiece=num+1;
+            this.score+=this.largestPiece*this.largestPiece;
+            this.addBonusText("New piece "+this.largestPiece+", "+this.largestPiece*this.largestPiece+" points");
           }
-          if(markCount>=15){
-            score+=250;
-            addBonusText("15+ Group, 250 points");
-          }else if(markCount>=10){
-            score+=100;
-            addBonusText("10+ Group, 100 points");
-          }else if(markCount>=5){
-            score+=25;
-            addBonusText("5+ Group, 25 points");
+          if(this.markCount>=15){
+            this.score+=250;
+            this.addBonusText("15+ Group, 250 points");
+          }else if(this.markCount>=10){
+            this.score+=100;
+            this.addBonusText("10+ Group, 100 points");
+          }else if(this.markCount>=5){
+            this.score+=25;
+            this.addBonusText("5+ Group, 25 points");
           }
-          scheduleFunction(frameTime,collapseBlocks);
+          if(this.score>this.hiscore){
+              this.hiscore=this.score;
+              localStorage["numbers-hiscore"]=this.hiscore;
+            }
+          this.scheduleFunction(this.frameTime,this.collapseBlocks);
         });
-*/
+
       }
     },
+    explodeBomb:function(x,y){
+      var queue=new Array();
 
+      for(var ix=-1;ix<2;ix++){
+        if(x+ix>=0 && x+ix<8){
+          for(var iy=-1;iy<2;iy++){
+            if(y+iy>=0 && y+iy<8){
+              var b=this.blocks[x+ix+(iy+y)*8];
+              if(b.number==10010 && ix+x!=x && iy+y!=y){
+                queue.push({
+                  x:ix,y:iy
+                });
+              }
+              b.number=-1;
+            }
+          }    
+        }      
+      }
+      for(var i=0;i<queue.length;i++){
+        this.explodeBomb(queue[i].x,queue[i].y);
+      }
+    },
     click:function(x,y){
       var gap=engine.config("height")-this.blockSize*8;
       if(y>gap){
@@ -246,8 +305,33 @@
         ctx.fillText(number,x+this.blockSize/2,y+this.blockSize/2+28);
       }
     },
-
+    runQueue:[],
+    scheduleFunction:function(t,f){
+      this.runQueue.push({
+        time:Date.now()+t,
+        exec:f
+      });
+    },
+    scoreQueue:[],
+    addScoreText:function(x,y,text){
+      this.scoreQueue.push({
+        x:x,
+        y:y,
+        yAdd:4,
+        text:text
+      });
+    },
+    bonusQueue:[],
+    addBonusText:function(text){
+      this.bonusQueue.push({text:text,time:2.0});
+    },
     render:function(ctx){
+      if(this.runQueue.length>0){
+        if(this.runQueue[0].time<Date.now()){
+          var job=this.runQueue.shift();
+          job.exec.call(this);
+        }
+      }
       // Background
       ctx.fillStyle="#EFEAE0";
       ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
@@ -260,186 +344,58 @@
       }
 
       // Score
-      ctx.font="80px helvetica";
+      ctx.font="60px helvetica";
       ctx.textAlign="left";
       ctx.fillStyle="#000000";
-      ctx.fillText(this.score,200,150);
-      ctx.font="60px helvetica";
-      ctx.fillText("Score",200,80);
+      ctx.fillText(this.score,16,150);
+      ctx.font="40px helvetica";
+      ctx.fillText("Score",16,100);
       // hiscore
-      ctx.font="80px helvetica";
+      ctx.font="60px helvetica";
       ctx.textAlign="left";
       ctx.fillStyle="#000000";
-      ctx.fillText(this.hiscore,600,150);
-      ctx.font="60px helvetica";
-      ctx.fillText("HiScore",600,80);
-    }
-  });
-  engine.show("game");
-  engine.start();
-/*
-  function mouseClicked(event){ 
-    if(mode==GAME){
-      
-    }
-  }
+      ctx.fillText(this.hiscore,2*this.blockSize+16,150);
+      ctx.font="40px helvetica";
+      ctx.fillText("HiScore",2*this.blockSize+16,100);
 
-  var markCount=0;
-
-  function collapseBlocks(){
-    var swapped=false;
-    for(var ix=0;ix<8;ix++){
-        for(var iy=7;iy>0;iy--){
-          var b=blocks[ix+iy*8];
-          if(b.number==-1){
-            var b2=blocks[ix+(iy-1)*8];
-            if(b2.number>-1){
-              blocks[ix+iy*8]=b2;
-              blocks[ix+(iy-1)*8]=b;
-              swapped=true;
-            }
-          }
-        }
-      
-    }
-    if(swapped){
-      scheduleFunction(frameTime,collapseBlocks);
-    }else{
-      scheduleFunction(frameTime,fillEmptyBlocks);
-    }
-  }
-
-  function fillEmptyBlocks(){
-    var fill=0;
-    for(var i=0;i<8;i++){
-      if(blocks[i].number==-1){
-        blocks[i].number=getNewBlockType();
-        fill++;
-      }
-    }
-    if(fill>0){
-      scheduleFunction(frameTime,collapseBlocks);
-    }
-  }
-
-  var multiplier=1;
-
-  
-
-  function explodeBomb(x,y){
-    var queue=new Array();
-
-    for(var ix=-1;ix<2;ix++){
-      if(x+ix>=0 && x+ix<8){
-        for(var iy=-1;iy<2;iy++){
-          if(y+iy>=0 && y+iy<8){
-            var b=blocks[x+ix+(iy+y)*8];
-            if(b.number==10010 && ix+x!=x && iy+y!=y){
-              queue.push({
-                x:ix,y:iy
-              });
-            }
-            b.number=-1;
-          }
-        }    
-      }      
-    }
-    for(var i=0;i<queue.length;i++){
-      explodeBomb(queue[i].x,queue[i].y);
-    }
-  }
-
-  
-
-
-
-  
-
-  
-  var score=0;
-
-  var flip=0;
-
-  var runQueue=new Array();
-
-  function scheduleFunction(t,f){
-    runQueue.push({
-      time:Date.now()+t,
-      exec:f
-    });
-  }
-
-  var scoreQueue=new Array();
-
-  function addScoreText(x,y,text){
-    scoreQueue.push({
-      x:x,
-      y:y,
-      yAdd:4,
-      text:text
-    });
-  }
-
-  var bonusQueue=new Array();
-
-  function addBonusText(text){
-    bonusQueue.push({text:text,time:2.0});
-  }
-
-  function renderingLoop(){
-    if(runQueue.length>0){
-      if(runQueue[0].time<Date.now()){
-        var job=runQueue.shift();
-        job.exec();
-      }
-    }
-    if(flip%2==0){
-      
-
-      
-
-      
-
-      flip=0;
-      for(var i=0;i<scoreQueue.length;i++){
+      for(var i=0;i<this.scoreQueue.length;i++){
         ctx.fillStyle="rgba(255,255,255,0.25)";
         ctx.beginPath();
-        ctx.arc(scoreQueue[i].x,scoreQueue[i].y-15,50,0,2*Math.PI,false);
+        ctx.arc(this.scoreQueue[i].x,this.scoreQueue[i].y-15,50,0,2*Math.PI,false);
         ctx.fill();
         ctx.font="40px helvetica";
         ctx.textAlign="center";
         ctx.fillStyle="#FFFFFF";
         ctx.strokeStyle="#000000";
         ctx.lineWidth=4;
-        ctx.strokeText(scoreQueue[i].text,scoreQueue[i].x,scoreQueue[i].y);
-        ctx.fillText(scoreQueue[i].text,scoreQueue[i].x,scoreQueue[i].y);
-        scoreQueue[i].y-=scoreQueue[i].yAdd;
-        scoreQueue[i].yAdd+=0.75;
+        ctx.strokeText(this.scoreQueue[i].text,this.scoreQueue[i].x,this.scoreQueue[i].y);
+        ctx.fillText(this.scoreQueue[i].text,this.scoreQueue[i].x,this.scoreQueue[i].y);
+        this.scoreQueue[i].y-=this.scoreQueue[i].yAdd;
+        this.scoreQueue[i].yAdd+=0.75;
       }
-      if(scoreQueue.length>0){
-        if(scoreQueue[0].y<0)scoreQueue.shift();
+      if(this.scoreQueue.length>0){
+        if(this.scoreQueue[0].y<0)this.scoreQueue.shift();
       }
-      if(bonusQueue.length>0){
-        ctx.font="25px helvetica";
+      if(this.bonusQueue.length>0){
+        ctx.font="40px helvetica";
         ctx.textAlign="right";
-        if(bonusQueue[0].time>1){
+        if(this.bonusQueue[0].time>1){
           ctx.fillStyle="#000000";
         }else{
-          ctx.fillStyle="rgba(0,0,0,"+bonusQueue[0].time+")";
+          ctx.fillStyle="rgba(0,0,0,"+this.bonusQueue[0].time+")";
         }
-        ctx.fillText(bonusQueue[0].text,width-20,30);
-        bonusQueue[0].time-=0.05;
-        if(bonusQueue[0].time<0.01){
-          bonusQueue.shift();
+        ctx.fillText(this.bonusQueue[0].text,engine.config("width")-20,50);
+        this.bonusQueue[0].time-=0.05;
+        if(this.bonusQueue[0].time<0.01){
+          this.bonusQueue.shift();
         }
       }
     }
-    flip++;
-    QueueNewFrame();
-  }
+  });
+  engine.show("game");
+  engine.start();
 
-  renderingLoop();
-  */
+
   </script>
   <script>
   /*(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
