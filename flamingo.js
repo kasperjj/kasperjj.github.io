@@ -1,45 +1,36 @@
-function CreateEngine(config){
+function CreateEngine(configArg){
 	var sceneHash={};
 	var currentScene=null;
 
 	// configuration
-	var fps=30;
-	var width=640;
-	var height=480;
-
-	if(config!=null){
-		fps=config.fps || fps;
-		width=config.width || width;
-		height=config.height || height;
-	}
+	var config=configArg || {};
+	config.fps=config.fps || 30;
+	config.width=config.width || 640;
+	config.height=config.height || 480;
 
 	// setup
-	var context={
-		width:width,
-		height:height
-	};
-	context.canvas=document.getElementById("canvas");
-	context.canvas.width=width;
-	context.canvas.height=height;
+	var canvas=document.getElementById("canvas");
+	canvas.width=config.width;
+	canvas.height=config.height;
 	window.addEventListener("resize", OnResizeCalled, false); 
  
 	function OnResizeCalled() {
 		var actualWidth=window.innerWidth; 
 		var actualHeight=window.innerHeight; 
-		var ratioX=actualWidth/width; 
-		var ratioY=actualHeight/height; 
+		var ratioX=actualWidth/config.width; 
+		var ratioY=actualHeight/config.height; 
 
 		var ratio = Math.min(ratioX, ratioY);
-		canvas.style.width = width*ratio + "px"; 
-		canvas.style.height = height*ratio + "px"; 
+		canvas.style.width = config.width*ratio + "px"; 
+		canvas.style.height = config.height*ratio + "px"; 
 	}
 	OnResizeCalled();
 
-  	context.ctx = context.canvas.getContext("2d");
+  	var ctx = canvas.getContext("2d");
 
   	var clickEvent = ('ontouchstart' in window ? 'touchend' : 'click');
 
-  	context.canvas.addEventListener(clickEvent, function(event){
+  	canvas.addEventListener(clickEvent, function(event){
   		if(currentScene!=null){
   			if("click" in currentScene){
   				currentScene.click(event);
@@ -51,24 +42,24 @@ function CreateEngine(config){
   		// console.log("render");
   		if(currentScene!=null){
   			if("render" in currentScene){
-  				currentScene.render(context);
+  				currentScene.render(ctx);
   			}
   		}else{
-  			context.ctx.fillStyle="#AAAAAA";
-  			context.ctx.fillRect(0,0,width,height);
-  			context.ctx.strokeStyle="#000000";
-  			context.ctx.beginPath();
-  			context.ctx.moveTo(0,0);
-  			context.ctx.lineTo(width,height);
-  			context.ctx.moveTo(width,0);
-  			context.ctx.lineTo(0,height);
-  			context.ctx.stroke();
-  			context.ctx.fillStyle="#000000";
-  			context.ctx.fillRect(width/2-150,height/2-20,300,40);
-  			context.ctx.fillStyle="#FFFFFF";
-  			context.ctx.font="30px helvetica";
-      		context.ctx.textAlign="center";
-  			context.ctx.fillText("FabulousFlamingo",width/2,height/2+8);
+  			ctx.fillStyle="#AAAAAA";
+  			ctx.fillRect(0,0,config.width,config.height);
+  			ctx.strokeStyle="#000000";
+  			ctx.beginPath();
+  			ctx.moveTo(0,0);
+  			ctx.lineTo(config.width,config.height);
+  			ctx.moveTo(config.width,0);
+  			ctx.lineTo(0,config.height);
+  			ctx.stroke();
+  			ctx.fillStyle="#000000";
+  			ctx.fillRect(config.width/2-150,config.height/2-20,300,40);
+  			ctx.fillStyle="#FFFFFF";
+  			ctx.font="30px helvetica";
+      		ctx.textAlign="center";
+  			ctx.fillText("FabulousFlamingo",config.width/2,config.height/2+8);
   		}
   		QueueNewFrame();
   	}
@@ -100,18 +91,23 @@ function CreateEngine(config){
 			if(id in sceneHash){
 				if(currentScene!=null){
 					if("exit" in currentScene){
-						currentScene.exit(context);
+						currentScene.exit();
 					}
 				}
 				currentScene=sceneHash[id];
 				if("enter" in currentScene){
-					currentScene.enter(context);
+					currentScene.enter();
 				}
 			}else{
 				throw("Unknown scene '"+id+"'");
 			}
 		},
 		// Engine
+		config:function(id,value){
+			if(id==null)return config;
+			if(value==null)return config[id];
+			config[id]=value;
+		},
 		start:function(){
 			QueueNewFrame();
 		}

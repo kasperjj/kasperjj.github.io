@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Numbers</title>
+  <script src="canvasUtil.js"></script>
   <script src="flamingo.js"></script>
   <style>
     body{margin:0px;padding:0px;}
@@ -24,56 +25,182 @@
     height:1704
   });
   engine.add("game",{
-    color:"rgb(200,0,188)",
-    click:function(event){
-      this.color="rgb("+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+","+Math.floor(Math.random()*255)+")";
+    
+    hiscore:0,
+    score:0,
+    blockSize:192,
+    largestPiece:4,
+    blocks:[],
+    colors:[],
+
+    enter:function(){
+      // load hiscore
+      if(localStorage["numbers-hiscore"]==null){
+        localStorage["numbers-hiscore"]=0;
+        this.hiscore=0;
+      }else{
+        this.hiscore=parseInt(localStorage["numbers-hiscore"]);
+      }
+      // setup blocks
+      for(var i=0;i<8*8;i++){
+        this.blocks.push({
+          number:this.getNewBlockType()
+        });
+      }
+      // setup colors
+      for(var i=0;i<5;i++){
+        this.colors.push("rgb("+(50+i*40)+",200,"+(250-i*40)+")");
+      }
+      for(var i=0;i<5;i++){
+        this.colors.push("rgb(250,"+(200-i*40)+",50)");
+      }
+      for(var i=0;i<5;i++){
+        this.colors.push("rgb(250,0,"+(50+i*40)+")");
+      }
     },
-    render:function(c){
-      c.ctx.fillStyle=this.color;
-      c.ctx.fillRect(0,0,c.width,c.height);
+
+    getNewBlockType:function(){
+      if(Math.random()<0.01){
+        return 10010;
+      }if(Math.random()<0.025){
+        if(Math.random()<0.3)return 10000;
+        if(Math.random()<0.3)return 10001;
+        return 10002;
+      }else{
+        return Math.floor(Math.random()*4+1);
+      }
+    },
+
+    click:function(event){
+    },
+    renderBlock:function(ctx,x,y,number){
+      if(number==-1)return;
+      // render piece
+      ctx.fillStyle="rgba(0,0,0,0.125)";
+      roundRect(ctx,x+8,y+8+8,this.blockSize-16,this.blockSize-16,32);
+      ctx.fill();
+
+      if(number>=10000){
+        ctx.fillStyle="#FFFFFF";
+      }else if(number<this.colors.length){
+        ctx.fillStyle=this.colors[number];
+      }else{
+        ctx.fillStyle=this.colors[this.colors.length-1];
+      }
+      // ctx.fillRect(x+4,y+4,this.blockSize-8,this.blockSize-8);
+      roundRect(ctx,x+8,y+8,this.blockSize-16,this.blockSize-16,32);
+      ctx.fill();
+
+      if(number>=10000){
+        if(number<10010){
+           // render number
+          ctx.font="52px helvetica";
+          ctx.textAlign="center";
+          ctx.fillStyle="#000000";
+          var text="x2";
+          if(number==10001){
+            text="x3";
+          }else if(number==10002){
+            text="x4";
+          }
+          ctx.fillText(text,x+this.blockSize/2,y+this.blockSize/2+15);
+          var num=10;
+          var slice=(Math.PI*2)/num;
+          for(var i=0;i<num;i++){
+            ctx.fillStyle=this.colors[i];
+            ctx.beginPath();
+            ctx.arc(x+this.blockSize/2+Math.cos(i*slice)*64,y+this.blockSize/2+Math.sin(i*slice)*64,12,0,2*Math.PI,false);
+            ctx.fill();
+          }
+        }else if(number==10010){
+          ctx.strokeStyle="#AA5500";
+          ctx.lineWidth=8;
+          ctx.beginPath();
+          ctx.arc(x+this.blockSize/2-32,y+60,32,11,0,false);
+          ctx.stroke();
+          ctx.fillStyle="#000000";
+          ctx.fillRect(x+this.blockSize/2-16,y+52,32,32);
+          ctx.fillStyle="#444444";
+          ctx.fillRect(x+this.blockSize/2-4,y+52,16,32);
+          ctx.fillStyle="#000000";
+          ctx.fillRect(x+this.blockSize/2-20,y+52,40,8);
+          ctx.beginPath();
+          ctx.arc(x+this.blockSize/2,y+this.blockSize/2+16,48,0,2*Math.PI,false);
+          ctx.fill();
+          ctx.fillStyle="#333333";
+          ctx.beginPath();
+          ctx.arc(x+this.blockSize/2+16,y+this.blockSize/2,20,0,2*Math.PI,false);
+          ctx.fill();
+          ctx.fillStyle="#666666";
+          ctx.beginPath();
+          ctx.arc(x+this.blockSize/2+16,y+this.blockSize/2,8,0,2*Math.PI,false);
+          ctx.fill();
+        }
+       }else{
+        ctx.fillStyle="rgba(255,255,255,0.25)";
+        if(number==1){
+          ctx.beginPath();
+          ctx.arc(x+this.blockSize/2,y+this.blockSize/2,this.blockSize/2-32,0,2*Math.PI,false);
+          ctx.fill();
+        }
+        if(number==2){
+          ctx.fillRect(x+this.blockSize/2-40,y+16,80,this.blockSize-32);
+        }
+        if(number==3){
+          ctx.beginPath();
+          ctx.moveTo(x+this.blockSize/2,y+32);
+          ctx.lineTo(x+this.blockSize-32,y+this.blockSize-32);
+          ctx.lineTo(x+32,y+this.blockSize-32);
+          ctx.lineTo(x+this.blockSize/2,y+32);
+          ctx.fill();
+        }
+        if(number==4){
+          ctx.fillRect(x+32,y+32,this.blockSize-64,this.blockSize-64);
+        }
+
+        // render number
+        ctx.font="80px helvetica";
+        ctx.textAlign="center";
+        ctx.fillStyle="#FFFFFF";
+        ctx.strokeStyle="rgba(0,0,0,0.25)";
+        ctx.lineWidth=12;
+        ctx.strokeText(number,x+this.blockSize/2-1,y+this.blockSize/2+28);
+        // use this in a loop later to adjust font size as numbers grow
+        ctx.fillText(number,x+this.blockSize/2,y+this.blockSize/2+28);
+      }
+    },
+
+    render:function(ctx){
+      // Background
+      ctx.fillStyle="#EFEAE0";
+      ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+
+      // Blocks
+      for(var ix=0;ix<8;ix++){
+        for(var iy=0;iy<8;iy++){
+          this.renderBlock(ctx,ix*this.blockSize,iy*this.blockSize+(engine.config("height")-8*this.blockSize),this.blocks[ix+iy*8].number);
+        }
+      }
+
+      // Score
+      ctx.font="80px helvetica";
+      ctx.textAlign="left";
+      ctx.fillStyle="#000000";
+      ctx.fillText(this.score,200,150);
+      ctx.font="60px helvetica";
+      ctx.fillText("Score",200,80);
+      // hiscore
+      ctx.font="80px helvetica";
+      ctx.textAlign="left";
+      ctx.fillStyle="#000000";
+      ctx.fillText(this.hiscore,600,150);
+      ctx.font="60px helvetica";
+      ctx.fillText("HiScore",600,80);
     }
   });
   engine.show("game");
   engine.start();
 /*
-  var hiscore=0;
-  var width=800;
-  var height=900;
-  var blockSize=100;
-
-  var largestPiece=4;
-
-  canvas.width = 800;
-  canvas.height = 900;
-  canvas.style.width = "400px";
-  canvas.style.height = "450px";
-
-  if(localStorage["numbers-hiscore"]==null){
-    localStorage["numbers-hiscore"]=0;
-    hiscore=0;
-  }else{
-    hiscore=parseInt(localStorage["numbers-hiscore"]);
-  }
-
-  function getNewBlockType(){
-    if(Math.random()<0.01){
-      return 10010;
-    }if(Math.random()<0.025){
-      if(Math.random()<0.3)return 10000;
-      if(Math.random()<0.3)return 10001;
-      return 10002;
-    }else{
-      return Math.floor(Math.random()*4+1);
-    }
-  }
-
-  var blocks=new Array();
-  for(var i=0;i<8*8;i++){
-    blocks.push({
-      number:getNewBlockType()
-    });
-  }
-
   function mouseClicked(event){ 
     if(mode==GAME){
       var x = event.x;
@@ -83,9 +210,9 @@
       y -= canvas.offsetTop;
       x=x*2;
       y=y*2;
-      if(y>blockSize){
-        var bx=Math.floor(x/blockSize);
-        var by=Math.floor((y-blockSize)/blockSize);
+      if(y>this.blockSize){
+        var bx=Math.floor(x/this.this.blockSize);
+        var by=Math.floor((y-this.this.blockSize)/this.this.blockSize);
         blockClicked(bx,by);
       }
     }
@@ -200,7 +327,7 @@
           scoreAdd+=num*multiplier;
         }
       }
-      addScoreText(x*blockSize+blockSize/2,(y+1)*blockSize+blockSize/2,scoreAdd);
+      addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
       scheduleFunction(frameTime,function(){
         blocks[x+y*8].number=num+1;
         if(num+1>largestPiece){
@@ -226,153 +353,9 @@
 
 
 
-  var colors=new Array();
+  
 
-  for(var i=0;i<5;i++){
-    colors.push("rgb("+(50+i*40)+",200,"+(250-i*40)+")");
-  }
-  for(var i=0;i<5;i++){
-    colors.push("rgb(250,"+(200-i*40)+",50)");
-  }
-  for(var i=0;i<5;i++){
-    colors.push("rgb(250,0,"+(50+i*40)+")");
-  }
-
-
-
-
-
-  function shuffle(array) {
-    var currentIndex = array.length, temporaryValue, randomIndex ;
-
-    // While there remain elements to shuffle...
-    while (0 !== currentIndex) {
-
-      // Pick a remaining element...
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex -= 1;
-
-      // And swap it with the current element.
-      temporaryValue = array[currentIndex];
-      array[currentIndex] = array[randomIndex];
-      array[randomIndex] = temporaryValue;
-    }
-
-    return array;
-  }
-  shuffle(blocks);
-
-  function roundRect(x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.lineTo(x + width - radius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-    ctx.lineTo(x + width, y + height - radius);
-    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-    ctx.lineTo(x + radius, y + height);
-    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-    ctx.lineTo(x, y + radius);
-    ctx.quadraticCurveTo(x, y, x + radius, y);
-    ctx.closePath();       
-  }
-
-  function renderBlock(x,y,number){
-    if(number==-1)return;
-    // render piece
-    ctx.fillStyle="rgba(0,0,0,0.125)";
-    roundRect(x+4,y+4+4,blockSize-8,blockSize-8,16);
-    ctx.fill();
-
-    if(number>=10000){
-      ctx.fillStyle="#FFFFFF";
-    }else if(number<colors.length){
-      ctx.fillStyle=colors[number];
-    }else{
-      ctx.fillStyle=colors[colors.length-1];
-    }
-    // ctx.fillRect(x+4,y+4,blockSize-8,blockSize-8);
-    roundRect(x+4,y+4,blockSize-8,blockSize-8,16);
-    ctx.fill();
-
-    if(number>=10000){
-      if(number<10010){
-         // render number
-        ctx.font="26px helvetica";
-        ctx.textAlign="center";
-        ctx.fillStyle="#000000";
-        var text="x2";
-        if(number==10001){
-          text="x3";
-        }else if(number==10002){
-          text="x4";
-        }
-        ctx.fillText(text,x+blockSize/2,y+blockSize/2+10);
-        var num=10;
-        var slice=(Math.PI*2)/num;
-        for(var i=0;i<num;i++){
-          ctx.fillStyle=colors[i];
-          ctx.beginPath();
-          ctx.arc(x+blockSize/2+Math.cos(i*slice)*32,y+blockSize/2+Math.sin(i*slice)*32,8,0,2*Math.PI,false);
-          ctx.fill();
-        }
-      }else if(number==10010){
-        ctx.strokeStyle="#AA5500";
-        ctx.lineWidth=4;
-        ctx.beginPath();
-        ctx.arc(x+blockSize/2-26,y+30,26,5.5,0,false);
-        ctx.stroke();
-        ctx.fillStyle="#000000";
-        ctx.fillRect(x+blockSize/2-8,y+26,16,16);
-        ctx.fillStyle="#444444";
-        ctx.fillRect(x+blockSize/2-2,y+26,8,16);
-        ctx.fillStyle="#000000";
-        ctx.fillRect(x+blockSize/2-10,y+26,20,4);
-        ctx.beginPath();
-        ctx.arc(x+blockSize/2,y+blockSize/2+8,24,0,2*Math.PI,false);
-        ctx.fill();
-        ctx.fillStyle="#333333";
-        ctx.beginPath();
-        ctx.arc(x+blockSize/2+8,y+blockSize/2,10,0,2*Math.PI,false);
-        ctx.fill();
-        ctx.fillStyle="#666666";
-        ctx.beginPath();
-        ctx.arc(x+blockSize/2+8,y+blockSize/2,4,0,2*Math.PI,false);
-        ctx.fill();
-      }
-     }else{
-      ctx.fillStyle="rgba(255,255,255,0.25)";
-      if(number==1){
-        ctx.beginPath();
-        ctx.arc(x+blockSize/2,y+blockSize/2,blockSize/2-8,0,2*Math.PI,false);
-        ctx.fill();
-      }
-      if(number==2){
-        ctx.fillRect(x+blockSize/2-20,y+8,40,blockSize-16);
-      }
-      if(number==3){
-        ctx.beginPath();
-        ctx.moveTo(x+blockSize/2,y+8);
-        ctx.lineTo(x+blockSize-8,y+blockSize-8);
-        ctx.lineTo(x+8,y+blockSize-8);
-        ctx.lineTo(x+blockSize/2,y+8);
-        ctx.fill();
-      }
-      if(number==4){
-        ctx.fillRect(x+8,y+8,blockSize-16,blockSize-16);
-      }
-
-      // render number
-      ctx.font="40px helvetica";
-      ctx.textAlign="center";
-      ctx.fillStyle="#FFFFFF";
-      ctx.strokeStyle="rgba(0,0,0,0.25)";
-      ctx.lineWidth=6;
-      ctx.strokeText(number,x+blockSize/2-1,y+blockSize/2+20-4);
-      // use this in a loop later to adjust font size as numbers grow
-      ctx.fillText(number,x+blockSize/2,y+blockSize/2+20-4);
-    }
-  }
-
+  
   var score=0;
 
   var flip=0;
@@ -411,31 +394,11 @@
       }
     }
     if(flip%2==0){
-      // Background
-      ctx.fillStyle="#EFEAE0";
-      ctx.fillRect(0,0,width,height);
+      
 
-      // Blocks
-      for(var ix=0;ix<8;ix++){
-        for(var iy=0;iy<8;iy++){
-          renderBlock(ix*100,(iy+1)*100,blocks[ix+iy*8].number);
-        }
-      }
+      
 
-      // Score
-      ctx.font="40px helvetica";
-      ctx.textAlign="left";
-      ctx.fillStyle="#000000";
-      ctx.fillText(score,100,80);
-      ctx.font="30px helvetica";
-      ctx.fillText("Score",100,40);
-      // hiscore
-      ctx.font="40px helvetica";
-      ctx.textAlign="left";
-      ctx.fillStyle="#000000";
-      ctx.fillText(hiscore,300,80);
-      ctx.font="30px helvetica";
-      ctx.fillText("HiScore",300,40);
+      
 
       flip=0;
       for(var i=0;i<scoreQueue.length;i++){
