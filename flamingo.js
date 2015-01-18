@@ -2,6 +2,8 @@ function CreateEngine(configArg){
 	var sceneHash={};
 	var currentScene=null;
 
+	var imageHash={};
+
 	// configuration
 	var config=configArg || {};
 	config.fps=config.fps || 30;
@@ -121,7 +123,15 @@ function CreateEngine(configArg){
 		},
 		// Images
 		loadImage:function(id,src){
-
+			imageHash[id]=new Image();
+			imageHash[id].src=src;
+		},
+		image:function(id){
+			if(id in imageHash){
+				return imageHash[id];
+			}else{
+				throw("Unknown image '"+id+"'");
+			}
 		},
 		// Engine
 		config:function(id,value){

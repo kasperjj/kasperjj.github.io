@@ -26,6 +26,18 @@
     width:750,
     height:1334
   });
+
+  engine.loadImage("background","images/background.png");
+  engine.loadImage("piece_1","images/piece_1.png");
+  engine.loadImage("piece_2","images/piece_2.png");
+  engine.loadImage("piece_3","images/piece_3.png");
+  engine.loadImage("piece_4","images/piece_4.png");
+  engine.loadImage("piece_5","images/piece_5.png");
+  engine.loadImage("piece_6","images/piece_6.png");
+  engine.loadImage("piece_7","images/piece_7.png");
+  engine.loadImage("piece_8","images/piece_8.png");
+  engine.loadImage("piece_white","images/piece_white.png");
+
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
     mode:GAME,
@@ -240,10 +252,10 @@
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
       // render piece
-      ctx.fillStyle="rgba(0,0,0,0.125)";
-      roundRect(ctx,x+8,y+8+8,this.blockSize-16,this.blockSize-16,32);
-      ctx.fill();
-
+      // ctx.fillStyle="rgba(0,0,0,0.125)";
+      // roundRect(ctx,x+8,y+8+8,this.blockSize-16,this.blockSize-16,32);
+      // ctx.fill();
+      /*
       if(number>=10000){
         ctx.fillStyle="#FFFFFF";
       }else if(number<this.colors.length){
@@ -321,17 +333,52 @@
         if(number==4){
           ctx.fillRect(x+32,y+32,this.blockSize-64,this.blockSize-64);
         }
+*/
+        var img_id="piece_";
+        if(number>=10000){
+          img_id="piece_white";
+        }else if(number<9){
+          img_id="piece_"+number;
+        }else{
+          img_id="piece_8";
+        }
+        ctx.drawImage(engine.image(img_id),x+10,y);
 
         // render number
-        ctx.font="80px helvetica";
+        ctx.font="30px helvetica";
         ctx.textAlign="center";
         ctx.fillStyle="#FFFFFF";
         ctx.strokeStyle="rgba(0,0,0,0.25)";
-        ctx.lineWidth=12;
-        ctx.strokeText(number,x+this.blockSize/2-1,y+this.blockSize/2+28);
+        ctx.lineWidth=6;
+
+        if(number>=10000){
+          if(number<10010){
+             // render number
+            ctx.font="40px helvetica";
+            ctx.textAlign="center";
+            ctx.fillStyle="#000000";
+            var text="x2";
+            if(number==10001){
+              text="x3";
+            }else if(number==10002){
+              text="x4";
+            }
+            ctx.fillText(text,x+this.blockSize/2,y+this.blockSize/2+5);
+            var num=10;
+            var slice=(Math.PI*2)/num;
+            for(var i=0;i<num;i++){
+              ctx.fillStyle=this.colors[i];
+              ctx.beginPath();
+              ctx.arc(x+this.blockSize/2+Math.cos(i*slice)*46,y+this.blockSize/2+Math.sin(i*slice)*46-10,10,0,2*Math.PI,false);
+              ctx.fill();
+            }
+          }
+        }
+
+        // ctx.strokeText(number,x+this.blockSize/2-1,y+this.blockSize/2+28);
         // use this in a loop later to adjust font size as numbers grow
-        ctx.fillText(number,x+this.blockSize/2,y+this.blockSize/2+28);
-      }
+        // ctx.fillText(number,x+this.blockSize/2,y+this.blockSize/2);
+      // }
     },
     runQueue:[],
     scheduleFunction:function(t,f){
@@ -361,9 +408,9 @@
         }
       }
       // Background
-      ctx.fillStyle="#EFEAE0";
-      ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-
+      // ctx.fillStyle="#EFEAE0";
+      // ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+      ctx.drawImage(engine.image("background"),0,0,750,1334);
       // Blocks
       for(var ix=0;ix<5;ix++){
         for(var iy=0;iy<8;iy++){
