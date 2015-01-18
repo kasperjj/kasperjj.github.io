@@ -34,11 +34,16 @@ function CreateEngine(configArg){
   	canvas.addEventListener(clickEvent, function(event){
   		if(currentScene!=null){
   			if("click" in currentScene){
+  				var x=0;
+  				var y=0;
   				if(event.type=="touchend"){
-  					event=event.changedTouches[0];
-  				}
-  				var x = event.x;
-		      	var y = event.y;
+  					var touch=event.changedTouches[0];
+  					x=touch.clientX;
+  					y=touch.clientY;
+  				}else{
+	  				x = event.x;
+			      	y = event.y;
+			     }
 		      	currentScene.addBonusText("click ("+x+","+y+")");
 
 		      	x -= canvas.offsetLeft;
