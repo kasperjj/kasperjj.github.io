@@ -27,7 +27,7 @@
     height:1334
   });
 
-  engine.loadImage("background","images/background.png");
+  engine.loadImage("background","images/background_2.png");
   engine.loadImage("piece_1","images/piece_1.png");
   engine.loadImage("piece_2","images/piece_2.png");
   engine.loadImage("piece_3","images/piece_3.png");
@@ -43,7 +43,12 @@
     mode:GAME,
     hiscore:0,
     score:0,
-    blockSize:150,
+    blockWidth:120,
+    blockHeight:120,
+    yOffset:230,
+    xOffset:20,
+    columns:6,
+    rows:9,
     largestPiece:4,
     frameTime:1000/30,
     blocks:[],
@@ -58,7 +63,7 @@
         this.hiscore=parseInt(localStorage["numbers-hiscore"]);
       }
       // setup blocks
-      for(var i=0;i<5*8;i++){
+      for(var i=0;i<this.columns*this.rows;i++){
         this.blocks.push({
           number:this.getNewBlockType()
         });
@@ -86,9 +91,9 @@
       }
     },
     traverse:function (x,y,number){
-      if(x<0 || x>4)return;
-      if(y<0 || y>7)return;
-      var b=this.blocks[x+y*5];
+      if(x<0 || x>=this.columns)return;
+      if(y<0 || y>=this.rows)return;
+      var b=this.blocks[x+y*this.columns];
       if((b.number==number || (b.number>=10000 && b.number<10010)) && !b.mark){
         if(b.number==10000)this.multiplier*=2;
         if(b.number==10001)this.multiplier*=3;
@@ -103,7 +108,7 @@
     },
     fillEmptyBlocks:function(){
       var fill=0;
-      for(var i=0;i<5;i++){
+      for(var i=0;i<this.columns;i++){
         if(this.blocks[i].number==-1){
           this.blocks[i].number=this.getNewBlockType();
           fill++;
@@ -118,14 +123,14 @@
     },
     collapseBlocks:function(){
       var swapped=false;
-      for(var ix=0;ix<5;ix++){
-          for(var iy=7;iy>0;iy--){
-            var b=this.blocks[ix+iy*5];
+      for(var ix=0;ix<this.columns;ix++){
+          for(var iy=this.rows-1;iy>0;iy--){
+            var b=this.blocks[ix+iy*this.columns];
             if(b.number==-1){
-              var b2=this.blocks[ix+(iy-1)*5];
+              var b2=this.blocks[ix+(iy-1)*this.columns];
               if(b2.number>-1){
-                this.blocks[ix+iy*5]=b2;
-                this.blocks[ix+(iy-1)*5]=b;
+                this.blocks[ix+iy*this.columns]=b2;
+                this.blocks[ix+(iy-1)*this.columns]=b;
                 swapped=true;
               }
             }
@@ -139,16 +144,16 @@
       }
     },
     checkGameOver:function(){
-      for(var iy=0;iy<8;iy++){
-        for(var ix=0;ix<5;ix++){
-          if(this.blocks[ix+iy*5].number==10010){
+      for(var iy=0;iy<this.rows;iy++){
+        for(var ix=0;ix<this.columns;ix++){
+          if(this.blocks[ix+iy*this.columns].number==10010){
             return false;
           }
           this.markCount=0;
           for(var i=0;i<this.blocks.length;i++){
             this.blocks[i].mark=false;
           }
-          this.traverse(ix,iy,this.blocks[ix+iy*5].number);
+          this.traverse(ix,iy,this.blocks[ix+iy*this.columns].number);
           if(this.markCount>2){
             return false;
           }
@@ -162,7 +167,7 @@
       for(var i=0;i<this.blocks.length;i++){
         this.blocks[i].mark=false;
       }
-      var num=this.blocks[x+y*5].number;
+      var num=this.blocks[x+y*this.columns].number;
       if(num==10010){
         // bomb
         this.explodeBomb(x,y);
@@ -191,7 +196,7 @@
         
         this.addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
         this.scheduleFunction(this.frameTime,function(){
-          this.blocks[x+y*5].number=num+1;
+          this.blocks[x+y*this.columns].number=num+1;
           if(num+1>this.largestPiece){
             this.largestPiece=num+1;
             this.score+=this.largestPiece*this.largestPiece;
@@ -220,10 +225,10 @@
       var queue=new Array();
 
       for(var ix=-1;ix<2;ix++){
-        if(x+ix>=0 && x+ix<5){
+        if(x+ix>=0 && x+ix<this.columns){
           for(var iy=-1;iy<2;iy++){
-            if(y+iy>=0 && y+iy<8){
-              var b=this.blocks[x+ix+(iy+y)*5];
+            if(y+iy>=0 && y+iy<this.rows){
+              var b=this.blocks[x+ix+(iy+y)*this.columns];
               if(b.number==10010 && ix+x!=x && iy+y!=y){
                 queue.push({
                   x:ix,y:iy
@@ -239,37 +244,28 @@
       }
     },
     click:function(x,y){
-      var gap=engine.config("height")-this.blockSize*8;
+      var gap=this.yOffset;
       if(y>gap){
-        var bx=Math.floor(x/this.blockSize);
-        var by=Math.floor((y-gap)/this.blockSize);
+        var bx=Math.floor((x-this.xOffset)/this.blockWidth);
+        var by=Math.floor((y-this.yOffset)/this.blockHeight);
         this.blockClicked(bx,by);
       }
 
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
-        var img_id="piece_";
+        var img_id="piece_1";
         if(number>=10000){
           img_id="piece_white";
-        }else if(number<9){
+        }else if(number<10){
           img_id="piece_"+number;
-        }else{
-          img_id="piece_8";
         }
-        ctx.drawImage(engine.image(img_id),x+10,y);
-
-        // render number
-        ctx.font="30px helvetica";
-        ctx.textAlign="center";
-        ctx.fillStyle="#FFFFFF";
-        ctx.strokeStyle="rgba(0,0,0,0.25)";
-        ctx.lineWidth=6;
+        ctx.drawImage(engine.image(img_id),x,y);
 
         if(number>=10000){
           if(number<10010){
              // render number
-            ctx.font="40px helvetica";
+            ctx.font="30px helvetica";
             ctx.textAlign="center";
             ctx.fillStyle="#000000";
             var text="x2";
@@ -278,13 +274,13 @@
             }else if(number==10002){
               text="x4";
             }
-            ctx.fillText(text,x+this.blockSize/2,y+this.blockSize/2+5);
+            ctx.fillText(text,x+this.blockWidth/2,y+this.blockHeight/2+5);
             var num=10;
             var slice=(Math.PI*2)/num;
             for(var i=0;i<num;i++){
               ctx.fillStyle=this.colors[i];
               ctx.beginPath();
-              ctx.arc(x+this.blockSize/2+Math.cos(i*slice)*46,y+this.blockSize/2+Math.sin(i*slice)*46-10,10,0,2*Math.PI,false);
+              ctx.arc(x+this.blockWidth/2+Math.cos(i*slice)*38-4,y+this.blockHeight/2+Math.sin(i*slice)*38-6,10,0,2*Math.PI,false);
               ctx.fill();
             }
           }
@@ -323,30 +319,30 @@
         }
       }
       // Background
-      ctx.fillStyle="#FFFFFF";
+      ctx.fillStyle="#000000";
       ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
       // ctx.drawImage(engine.image("background"),0,0,750,1334);
       // Blocks
-      for(var ix=0;ix<5;ix++){
-        for(var iy=0;iy<8;iy++){
-          this.renderBlock(ctx,ix*this.blockSize,iy*this.blockSize+(engine.config("height")-8*this.blockSize),this.blocks[ix+iy*5].number);
+      for(var ix=0;ix<this.columns;ix++){
+        for(var iy=0;iy<this.rows;iy++){
+          this.renderBlock(ctx,ix*this.blockWidth+this.xOffset,iy*this.blockHeight+this.yOffset,this.blocks[ix+iy*this.columns].number);
         }
       }
 
       // Score
       ctx.font="60px helvetica";
       ctx.textAlign="left";
-      ctx.fillStyle="#000000";
-      ctx.fillText(this.score,16,120);
+      ctx.fillStyle="#FFFFFF";
+      ctx.fillText(this.score,16,140);
       ctx.font="40px helvetica";
-      ctx.fillText("Score",16,65);
+      ctx.fillText("Score",16,85);
       // hiscore
       ctx.font="60px helvetica";
       ctx.textAlign="left";
-      ctx.fillStyle="#000000";
-      ctx.fillText(this.hiscore,2*this.blockSize+16,120);
+      ctx.fillStyle="#FFFFFF";
+      ctx.fillText(this.hiscore,2*this.blockWidth+16,140);
       ctx.font="40px helvetica";
-      ctx.fillText("HiScore",2*this.blockSize+16,65);
+      ctx.fillText("HiScore",2*this.blockWidth+16,85);
 
       for(var i=0;i<this.scoreQueue.length;i++){
         ctx.fillStyle="rgba(255,255,255,0.25)";
@@ -370,7 +366,7 @@
         ctx.font="40px helvetica";
         ctx.textAlign="right";
         if(this.bonusQueue[0].time>1){
-          ctx.fillStyle="#000000";
+          ctx.fillStyle="#FFFFFF";
         }else{
           ctx.fillStyle="rgba(0,0,0,"+this.bonusQueue[0].time+")";
         }
