@@ -208,6 +208,7 @@
         var by=Math.floor((y-gap)/this.blockSize);
         this.blockClicked(bx,by);
       }
+      this.addBonusText("click ("+x+","+y+")");
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
