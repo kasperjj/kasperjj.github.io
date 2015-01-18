@@ -36,7 +36,9 @@
   engine.loadImage("piece_6","images/piece_6.png");
   engine.loadImage("piece_7","images/piece_7.png");
   engine.loadImage("piece_8","images/piece_8.png");
-  engine.loadImage("piece_white","images/piece_white.png");
+  engine.loadImage("piece_x2","images/piece_x2.png");
+  engine.loadImage("piece_x3","images/piece_x3.png");
+  engine.loadImage("piece_x4","images/piece_x4.png");
 
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
@@ -53,6 +55,7 @@
     frameTime:1000/30,
     blocks:[],
     colors:[],
+    lastNumber:0,
 
     enter:function(){
       // load hiscore
@@ -82,11 +85,13 @@
     multiplier:1,
     markCount:0,
     getNewBlockType:function(){
-      if(Math.random()<0.03){
+      if(this.lastNumber==4){
+        this.lastNumber=0;
         if(Math.random()<0.3)return 10000;
         if(Math.random()<0.3)return 10001;
         return 10002;
       }else{
+        this.lastNumber=0;
         return Math.floor(Math.random()*4+1);
       }
     },
@@ -146,7 +151,7 @@
     checkGameOver:function(){
       for(var iy=0;iy<this.rows;iy++){
         for(var ix=0;ix<this.columns;ix++){
-          if(this.blocks[ix+iy*this.columns].number==10010){
+          if(this.blocks[ix+iy*this.columns].number==6){
             return false;
           }
           this.markCount=0;
@@ -175,14 +180,14 @@
         this.blocks[i].mark=false;
       }
       var num=this.blocks[x+y*this.columns].number;
-      if(num==6){
+      if(num==10010){
         // new style bomb
         this.explodeSideBomb(x,y);
         this.addScore(250);
         this.addBonusText("Blow away row, 250 points");
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
         return;
-      }else if(num==10010){
+      }else if(num==10011){
         // bomb
         this.explodeBomb(x,y);
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
@@ -193,9 +198,9 @@
       }
       this.markCount=0;
       var scoreAdd=0;
-      
       this.traverse(x,y,num);
       if(this.markCount>2){
+        this.lastNumber=num;
         for(var i=0;i<this.blocks.length;i++){
           if(this.blocks[i].mark){
             this.blocks[i].number=-1;
@@ -267,42 +272,17 @@
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
         var img_id="piece_1";
-        if(number>=10000){
-          img_id="piece_white";
+        if(number==10000){
+          img_id="piece_x2";
+        }else if(number==10001){
+          img_id="piece_x3";
+        }else if(number==10002){
+          img_id="piece_x4";
         }else if(number<10){
           img_id="piece_"+number;
         }
         ctx.drawImage(engine.image(img_id),x,y);
-
-        if(number>=10000){
-          if(number<10010){
-             // render number
-            ctx.font="30px helvetica";
-            ctx.textAlign="center";
-            ctx.fillStyle="#000000";
-            var text="x2";
-            if(number==10001){
-              text="x3";
-            }else if(number==10002){
-              text="x4";
-            }
-            ctx.fillText(text,x+this.blockWidth/2,y+this.blockHeight/2+5);
-            var num=10;
-            var slice=(Math.PI*2)/num;
-            for(var i=0;i<num;i++){
-              ctx.fillStyle=this.colors[i];
-              ctx.beginPath();
-              ctx.arc(x+this.blockWidth/2+Math.cos(i*slice)*38-4,y+this.blockHeight/2+Math.sin(i*slice)*38-6,10,0,2*Math.PI,false);
-              ctx.fill();
-            }
-          }
-        }
-
-        // ctx.strokeText(number,x+this.blockSize/2-1,y+this.blockSize/2+28);
-        // use this in a loop later to adjust font size as numbers grow
-        // ctx.fillText(number,x+this.blockSize/2,y+this.blockSize/2);
-      // }
-    },
+     },
     runQueue:[],
     scheduleFunction:function(t,f){
       this.runQueue.push({
