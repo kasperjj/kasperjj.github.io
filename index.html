@@ -23,15 +23,15 @@
 
   var engine=CreateEngine({
     fps:30,
-    width:960,
-    height:1704
+    width:750,
+    height:1334
   });
   // localStorage["numbers-hiscore"]=0;
-  engine.add("game",{
+  engine.addScene("game",{
     mode:GAME,
     hiscore:0,
     score:0,
-    blockSize:192,
+    blockSize:150,
     largestPiece:4,
     frameTime:1000/30,
     blocks:[],
@@ -375,16 +375,16 @@
       ctx.font="60px helvetica";
       ctx.textAlign="left";
       ctx.fillStyle="#000000";
-      ctx.fillText(this.score,16,150);
+      ctx.fillText(this.score,16,120);
       ctx.font="40px helvetica";
-      ctx.fillText("Score",16,100);
+      ctx.fillText("Score",16,65);
       // hiscore
       ctx.font="60px helvetica";
       ctx.textAlign="left";
       ctx.fillStyle="#000000";
-      ctx.fillText(this.hiscore,2*this.blockSize+16,150);
+      ctx.fillText(this.hiscore,2*this.blockSize+16,120);
       ctx.font="40px helvetica";
-      ctx.fillText("HiScore",2*this.blockSize+16,100);
+      ctx.fillText("HiScore",2*this.blockSize+16,65);
 
       for(var i=0;i<this.scoreQueue.length;i++){
         ctx.fillStyle="rgba(255,255,255,0.25)";
@@ -429,7 +429,7 @@
       }
     }
   });
-  engine.show("game");
+  engine.showScene("game");
   engine.start();
 
 

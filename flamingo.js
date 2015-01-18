@@ -101,10 +101,10 @@ function CreateEngine(configArg){
 
 	return {
 		// Scene management
-		add:function(id,scene){
+		addScene:function(id,scene){
 			sceneHash[id]=scene;
 		},
-		show:function(id){
+		showScene:function(id){
 			if(id in sceneHash){
 				if(currentScene!=null){
 					if("exit" in currentScene){
@@ -118,6 +118,10 @@ function CreateEngine(configArg){
 			}else{
 				throw("Unknown scene '"+id+"'");
 			}
+		},
+		// Images
+		loadImage:function(id,src){
+
 		},
 		// Engine
 		config:function(id,value){
