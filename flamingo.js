@@ -29,11 +29,14 @@ function CreateEngine(configArg){
 
   	var ctx = canvas.getContext("2d");
 
-  	var clickEvent = ('ontouchstart' in window ? 'touchend' : 'click');
+  	var clickEvent = ('ontouchstart' in window ? 'touchend' : 'mousedown');
 
   	canvas.addEventListener(clickEvent, function(event){
   		if(currentScene!=null){
   			if("click" in currentScene){
+  				if(event.type=="touchend"){
+  					event=event.changedTouches[0];
+  				}
   				var x = event.x;
 		      	var y = event.y;
 		      	currentScene.addBonusText("click ("+x+","+y+")");
