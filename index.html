@@ -23,6 +23,7 @@
     width:960,
     height:1704
   });
+  localStorage["numbers-hiscore"]=0;
   engine.add("game",{
     
     hiscore:0,
@@ -144,7 +145,7 @@
           if(this.blocks[i].mark){
             this.blocks[i].number=-1;
             this.score+=num*this.multiplier;
-            if(this.score>this.hiscore){
+            if(this.score>this.hiscore  && this.score<10000000){
               this.hiscore=this.score;
               localStorage["numbers-hiscore"]=this.hiscore;
             }
@@ -170,7 +171,7 @@
             this.score+=25;
             this.addBonusText("5+ Group, 25 points");
           }
-          if(this.score>this.hiscore){
+          if(this.score>this.hiscore && this.score<10000000){
               this.hiscore=this.score;
               localStorage["numbers-hiscore"]=this.hiscore;
             }
@@ -208,7 +209,7 @@
         var by=Math.floor((y-gap)/this.blockSize);
         this.blockClicked(bx,by);
       }
-      
+
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;

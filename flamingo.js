@@ -44,7 +44,7 @@ function CreateEngine(configArg){
 	  				x = event.x;
 			      	y = event.y;
 			     }
-		      	currentScene.addBonusText("click ("+x+","+y+")");
+		      	// currentScene.addBonusText("click ("+x+","+y+")");
 
 		      	x -= canvas.offsetLeft;
 		      	y -= canvas.offsetTop;
