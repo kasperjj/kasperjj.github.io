@@ -58,7 +58,7 @@
     blocks:[],
     colors:[],
     lastNumber:0,
-    dirty:true,
+    dirty:0,
 
     enter:function(){
       // load hiscore
@@ -315,7 +315,7 @@
       this.bonusQueue.push({text:text,time:2.0});
     },
     render:function(ctx){
-      if(this.runQueue.length>0 || this.bonusQueue.length>0 || this.dirty){
+      if(this.runQueue.length>0 || this.bonusQueue.length>0 || this.dirty==0){
         if(this.runQueue.length>0){
           if(this.runQueue[0].time<Date.now()){
             var job=this.runQueue.shift();
@@ -377,8 +377,9 @@
           ctx.fillStyle="#FFFFFF";
           ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
         }
-        this.dirty=false;
+        this.dirty=16;
       }
+      this.dirty--;
     }
   });
   engine.showScene("game");
