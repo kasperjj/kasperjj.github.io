@@ -201,7 +201,6 @@
         return;
       }
       this.markCount=0;
-      var scoreAdd=0;
       this.traverse(x,y,num);
       if(this.markCount>2){
         this.lastNumber=num;
@@ -209,11 +208,9 @@
           if(this.blocks[i].mark){
             this.blocks[i].number=-1;
             this.addScore(num*this.multiplier);
-            scoreAdd+=num*this.multiplier;
           }
         }
         
-        this.addScoreText(x*this.blockSize+this.blockSize/2,(y+1)*this.blockSize+this.blockSize/2,scoreAdd);
         this.scheduleFunction(this.frameTime,function(){
           this.blocks[x+y*this.columns].number=num+1;
           if(num+1>this.largestPiece){
@@ -296,15 +293,6 @@
         exec:f
       });
     },
-    scoreQueue:[],
-    addScoreText:function(x,y,text){
-      this.scoreQueue.push({
-        x:x,
-        y:y,
-        yAdd:4,
-        text:text
-      });
-    },
     bonusQueue:[],
     addBonusText:function(text){
       this.bonusQueue.push({text:text,time:2.0});
@@ -342,24 +330,6 @@
       ctx.font="40px helvetica";
       ctx.fillText("HiScore",2*this.blockWidth+16,85);
 
-      for(var i=0;i<this.scoreQueue.length;i++){
-        ctx.fillStyle="rgba(255,255,255,0.25)";
-        ctx.beginPath();
-        ctx.arc(this.scoreQueue[i].x,this.scoreQueue[i].y-15,50,0,2*Math.PI,false);
-        ctx.fill();
-        ctx.font="40px helvetica";
-        ctx.textAlign="center";
-        ctx.fillStyle="#FFFFFF";
-        ctx.strokeStyle="#000000";
-        ctx.lineWidth=4;
-        ctx.strokeText(this.scoreQueue[i].text,this.scoreQueue[i].x,this.scoreQueue[i].y);
-        ctx.fillText(this.scoreQueue[i].text,this.scoreQueue[i].x,this.scoreQueue[i].y);
-        this.scoreQueue[i].y-=this.scoreQueue[i].yAdd;
-        this.scoreQueue[i].yAdd+=0.75;
-      }
-      if(this.scoreQueue.length>0){
-        if(this.scoreQueue[0].y<0)this.scoreQueue.shift();
-      }
       if(this.bonusQueue.length>0){
         ctx.font="40px helvetica";
         ctx.textAlign="right";
