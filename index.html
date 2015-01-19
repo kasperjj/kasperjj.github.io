@@ -40,6 +40,7 @@
   engine.loadImage("piece_x3","images/piece_x3.png");
   engine.loadImage("piece_x4","images/piece_x4.png");
   engine.loadImage("piece_bomb_side","images/piece_bomb_side.png");
+  engine.loadImage("piece_bomb_all","images/piece_bomb_all.png");
 
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
@@ -94,6 +95,9 @@
       }else if(this.lastNumber==5){
         this.lastNumber=0;
         return 10010;
+      }else if(this.lastNumber==6){
+        this.lastNumber=0;
+        return 10011;
       }else{
         this.lastNumber=0;
         return Math.floor(Math.random()*4+1);
@@ -155,7 +159,7 @@
     checkGameOver:function(){
       for(var iy=0;iy<this.rows;iy++){
         for(var ix=0;ix<this.columns;ix++){
-          if(this.blocks[ix+iy*this.columns].number==10010){
+          if(this.blocks[ix+iy*this.columns].number>=10010){
             return false;
           }
           this.markCount=0;
@@ -194,6 +198,8 @@
       }else if(num==10011){
         // bomb
         this.explodeBomb(x,y);
+        this.addScore(500);
+        this.addBonusText("Blow away double, 500 points");
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
         return;
       }else if(num>=10000){
@@ -236,23 +242,31 @@
     explodeBomb:function(x,y){
       var queue=new Array();
 
-      for(var ix=-1;ix<2;ix++){
-        if(x+ix>=0 && x+ix<this.columns){
-          for(var iy=-1;iy<2;iy++){
-            if(y+iy>=0 && y+iy<this.rows){
-              var b=this.blocks[x+ix+(iy+y)*this.columns];
-              if(b.number==10010 && ix+x!=x && iy+y!=y){
-                queue.push({
-                  x:ix,y:iy
-                });
-              }
-              b.number=-1;
-            }
-          }    
-        }      
+      for(var ix=0;ix<this.columns;ix++){
+        var b=this.blocks[ix+y*this.columns];
+        if((b.number==10010 || b.number==10011)&& ix!=x){
+          queue.push({
+            x:ix,y:y,number:b.number
+          });
+        }
+        b.number=-1;
+      }
+      for(var iy=0;iy<this.rows;iy++){
+        var b=this.blocks[x+iy*this.columns];
+        if((b.number==10010 || b.number==10011)&& iy!=y){
+          queue.push({
+            x:x,y:iy,number:b.number
+          });
+        }
+        b.number=-1;
       }
       for(var i=0;i<queue.length;i++){
-        this.explodeBomb(queue[i].x,queue[i].y);
+        var b=queue[i];
+        if(b.number==10011){
+          this.explodeBomb(queue[i].x,queue[i].y);
+        }else if(b.number==10010){
+          this.explodeSideBomb(queue[i].x,queue[i].y);
+        }
       }
     },
     explodeSideBomb:function(x,y){
@@ -281,6 +295,8 @@
           img_id="piece_x4";
         }else if(number==10010){
           img_id="piece_bomb_side";
+        }else if(number==10011){
+          img_id="piece_bomb_all";
         }else if(number<10){
           img_id="piece_"+number;
         }
@@ -317,29 +333,29 @@
 
       // Score
       ctx.font="60px helvetica";
-      ctx.textAlign="left";
+      ctx.textAlign="center";
       ctx.fillStyle="#FFFFFF";
-      ctx.fillText(this.score,16,140);
+      ctx.fillText(this.score,engine.config("width")/2,160);
       ctx.font="40px helvetica";
-      ctx.fillText("Score",16,85);
+      ctx.fillText("Score",engine.config("width")/2,105);
       // hiscore
-      ctx.font="60px helvetica";
+      ctx.font="40px helvetica";
       ctx.textAlign="left";
       ctx.fillStyle="#FFFFFF";
-      ctx.fillText(this.hiscore,2*this.blockWidth+16,140);
-      ctx.font="40px helvetica";
-      ctx.fillText("HiScore",2*this.blockWidth+16,85);
+      ctx.fillText(this.hiscore,this.xOffset,80);
+      ctx.font="20px helvetica";
+      ctx.fillText("HiScore",this.xOffset,40);
 
       if(this.bonusQueue.length>0){
         ctx.font="40px helvetica";
-        ctx.textAlign="right";
+        ctx.textAlign="center";
         if(this.bonusQueue[0].time>1){
           ctx.fillStyle="#FFFFFF";
         }else{
           ctx.fillStyle="rgba(0,0,0,"+this.bonusQueue[0].time+")";
         }
-        ctx.fillText(this.bonusQueue[0].text,engine.config("width")-20,50);
-        this.bonusQueue[0].time-=0.05;
+        ctx.fillText(this.bonusQueue[0].text,engine.config("width")/2,210);
+        this.bonusQueue[0].time-=0.025;
         if(this.bonusQueue[0].time<0.01){
           this.bonusQueue.shift();
         }
