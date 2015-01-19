@@ -49,7 +49,7 @@
     score:0,
     blockWidth:120,
     blockHeight:120,
-    yOffset:230,
+    yOffset:240,
     xOffset:20,
     columns:6,
     rows:9,
@@ -58,6 +58,7 @@
     blocks:[],
     colors:[],
     lastNumber:0,
+    dirty:true,
 
     enter:function(){
       // load hiscore
@@ -314,60 +315,69 @@
       this.bonusQueue.push({text:text,time:2.0});
     },
     render:function(ctx){
-      if(this.runQueue.length>0){
-        if(this.runQueue[0].time<Date.now()){
-          var job=this.runQueue.shift();
-          job.exec.call(this);
+      if(this.runQueue.length>0 || this.bonusQueue.length>0 || this.dirty){
+        if(this.runQueue.length>0){
+          if(this.runQueue[0].time<Date.now()){
+            var job=this.runQueue.shift();
+            job.exec.call(this);
+          }
         }
-      }
-      // Background
-      ctx.fillStyle="#000000";
-      ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-      // ctx.drawImage(engine.image("background"),0,0,750,1334);
-      // Blocks
-      for(var ix=0;ix<this.columns;ix++){
-        for(var iy=0;iy<this.rows;iy++){
-          this.renderBlock(ctx,ix*this.blockWidth+this.xOffset,iy*this.blockHeight+this.yOffset,this.blocks[ix+iy*this.columns].number);
-        }
-      }
-
-      // Score
-      ctx.font="60px helvetica";
-      ctx.textAlign="center";
-      ctx.fillStyle="#FFFFFF";
-      ctx.fillText(this.score,engine.config("width")/2,160);
-      ctx.font="40px helvetica";
-      ctx.fillText("Score",engine.config("width")/2,105);
-      // hiscore
-      ctx.font="40px helvetica";
-      ctx.textAlign="left";
-      ctx.fillStyle="#FFFFFF";
-      ctx.fillText(this.hiscore,this.xOffset,80);
-      ctx.font="20px helvetica";
-      ctx.fillText("HiScore",this.xOffset,40);
-
-      if(this.bonusQueue.length>0){
-        ctx.font="40px helvetica";
-        ctx.textAlign="center";
-        if(this.bonusQueue[0].time>1){
-          ctx.fillStyle="#FFFFFF";
-        }else{
-          ctx.fillStyle="rgba(0,0,0,"+this.bonusQueue[0].time+")";
-        }
-        ctx.fillText(this.bonusQueue[0].text,engine.config("width")/2,210);
-        this.bonusQueue[0].time-=0.025;
-        if(this.bonusQueue[0].time<0.01){
-          this.bonusQueue.shift();
-        }
-      }
-      if(this.mode==GAMEOVER){
-        ctx.fillStyle="rgba(0,0,0,0.5)";
+        // Background
+        ctx.fillStyle="#000000";
         ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-        ctx.fillRect(0,engine.config("height")/2-100,engine.config("width"),200);
-        ctx.font="80px helvetica";
+        // ctx.drawImage(engine.image("background"),0,0,750,1334);
+        // Blocks
+        for(var ix=0;ix<this.columns;ix++){
+          for(var iy=0;iy<this.rows;iy++){
+            this.renderBlock(ctx,ix*this.blockWidth+this.xOffset,iy*this.blockHeight+this.yOffset,this.blocks[ix+iy*this.columns].number);
+          }
+        }
+
+        // Score
+        ctx.font="60px helvetica";
         ctx.textAlign="center";
         ctx.fillStyle="#FFFFFF";
-        ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
+        ctx.fillText(this.score,engine.config("width")/2,160);
+        ctx.font="40px helvetica";
+        ctx.fillText("Score",engine.config("width")/2,105);
+        // hiscore
+        ctx.font="40px helvetica";
+        ctx.textAlign="left";
+        ctx.fillStyle="#FFFFFF";
+        ctx.fillText(this.hiscore,this.xOffset,80);
+        ctx.font="20px helvetica";
+        ctx.fillText("HiScore",this.xOffset,40);
+        // menu button
+        ctx.font="40px helvetica";
+        ctx.textAlign="right";
+        ctx.fillStyle="#FFFFFF";
+        ctx.fillText("( Menu )",engine.config("width")-this.xOffset,80);
+
+
+        if(this.bonusQueue.length>0){
+          ctx.font="30px helvetica";
+          ctx.textAlign="center";
+          if(this.bonusQueue[0].time>1){
+            ctx.fillStyle="#FFFFFF";
+          }else{
+            ctx.fillStyle="rgba(0,0,0,"+this.bonusQueue[0].time+")";
+          }
+          ctx.fillText(this.bonusQueue[0].text,engine.config("width")/2,220);
+          this.bonusQueue[0].time-=0.025;
+          if(this.bonusQueue[0].time<0.01){
+            this.bonusQueue.shift();
+          }
+        }
+        if(this.mode==GAMEOVER){
+          ctx.fillStyle="rgba(0,0,0,0.5)";
+          ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+          ctx.fillRect(0,engine.config("height")/2-100,engine.config("width"),200);
+          ctx.font="80px helvetica";
+          ctx.textAlign="center";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
+        }
+        this.dirty=false;
       }
     }
   });
