@@ -39,6 +39,7 @@
   engine.loadImage("piece_x2","images/piece_x2.png");
   engine.loadImage("piece_x3","images/piece_x3.png");
   engine.loadImage("piece_x4","images/piece_x4.png");
+  engine.loadImage("piece_bomb_side","images/piece_bomb_side.png");
 
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
@@ -90,6 +91,9 @@
         if(Math.random()<0.3)return 10000;
         if(Math.random()<0.3)return 10001;
         return 10002;
+      }else if(this.lastNumber==5){
+        this.lastNumber=0;
+        return 10010;
       }else{
         this.lastNumber=0;
         return Math.floor(Math.random()*4+1);
@@ -151,7 +155,7 @@
     checkGameOver:function(){
       for(var iy=0;iy<this.rows;iy++){
         for(var ix=0;ix<this.columns;ix++){
-          if(this.blocks[ix+iy*this.columns].number==6){
+          if(this.blocks[ix+iy*this.columns].number==10010){
             return false;
           }
           this.markCount=0;
@@ -278,6 +282,8 @@
           img_id="piece_x3";
         }else if(number==10002){
           img_id="piece_x4";
+        }else if(number==10010){
+          img_id="piece_bomb_side";
         }else if(number<10){
           img_id="piece_"+number;
         }
