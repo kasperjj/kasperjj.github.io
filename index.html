@@ -20,6 +20,7 @@
   <script>
   var GAME=0;
   var GAMEOVER=1;
+  var MENU=2;
 
   var engine=CreateEngine({
     fps:30,
@@ -28,6 +29,8 @@
   });
 
   // engine.loadImage("background","images/background_2.png");
+  engine.loadImage("menu_button","images/menu_button.png");
+
   engine.loadImage("piece_1","images/piece_1.png");
   engine.loadImage("piece_2","images/piece_2.png");
   engine.loadImage("piece_3","images/piece_3.png");
@@ -71,7 +74,7 @@
       // setup blocks
       for(var i=0;i<this.columns*this.rows;i++){
         this.blocks.push({
-          number:this.getNewBlockType()
+          number:-1
         });
       }
       // setup colors
@@ -84,6 +87,26 @@
       for(var i=0;i<5;i++){
         this.colors.push("rgb(250,0,"+(50+i*40)+")");
       }
+
+      /*engine.addView({
+        id:"menu-button",
+        x:engine.config("width")-160,
+        y:70,
+        width:160,
+        height:40,
+        render:function(ctx){
+          ctx.fillStyle="#FF0000"
+          ctx.fillRect(0,0,this.width,this.height)
+          ctx.font="40px helvetica";
+          ctx.textAlign="left";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText("( Menu )",0,0);
+        },
+        click:function(x,y){
+          console.log("menu button clicked")
+        }
+      });*/
+      this.restartGame()
     },
     multiplier:1,
     markCount:0,
@@ -152,6 +175,12 @@
         
       }
       if(swapped){
+        // Do fast fill in for now.... will look better with proper animation
+        for(var i=0;i<this.columns;i++){
+          if(this.blocks[i].number==-1){
+            this.blocks[i].number=this.getNewBlockType();
+          }
+        }
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
       }else{
         this.scheduleFunction(this.frameTime,this.fillEmptyBlocks);
@@ -277,13 +306,52 @@
       }
     },
     click:function(x,y){
-      var gap=this.yOffset;
-      if(y>gap){
-        var bx=Math.floor((x-this.xOffset)/this.blockWidth);
-        var by=Math.floor((y-this.yOffset)/this.blockHeight);
-        this.blockClicked(bx,by);
+      if(this.mode==GAME){
+        var gap=this.yOffset;
+        if(y>gap){
+          var bx=Math.floor((x-this.xOffset)/this.blockWidth);
+          var by=Math.floor((y-this.yOffset)/this.blockHeight);
+          this.blockClicked(bx,by);
+        }else{
+          // menu button
+          if(x>engine.config("width")-120 && y<120){
+            this.mode=MENU
+          }
+        }
+      }else if(this.mode==MENU){
+        if(x>50 && x<engine.config("width")-100){
+          if(y>325 && y<425){
+            // Resume
+            this.mode=GAME;
+          }else if(y>475 && y<575){
+            // Restart
+            this.restartGame()
+          }else if(y>625 && y<725){
+            // Quit
+            this.quitGame()
+          }
+        }
       }
-
+      dirty=0
+    },
+    restartGame:function(){
+      this.runQueue=[]
+      this.bonusQueue=[]
+      /*var newBlocks=[]
+      // setup blocks
+      for(var i=0;i<this.columns*this.rows;i++){
+        newBlocks.push({
+          number:this.getNewBlockType()
+        });
+      }
+      this.blocks=newBlocks*/
+      for(var i=0;i<this.columns*this.rows;i++){
+        this.blocks[i].number=-1
+      }
+      this.scheduleFunction(this.frameTime,this.collapseBlocks);
+      this.score=0
+      this.dirty=0;
+      this.mode=GAME
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
@@ -325,7 +393,12 @@
         // Background
         ctx.fillStyle="#000000";
         ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-        // ctx.drawImage(engine.image("background"),0,0,750,1334);
+        
+        // menu button
+        if(this.mode==GAME){
+          ctx.drawImage(engine.image("menu_button"),engine.config("width")-120,20);
+        }
+
         // Blocks
         for(var ix=0;ix<this.columns;ix++){
           for(var iy=0;iy<this.rows;iy++){
@@ -347,11 +420,6 @@
         ctx.fillText(this.hiscore,this.xOffset,80);
         ctx.font="20px helvetica";
         ctx.fillText("HiScore",this.xOffset,40);
-        // menu button
-        ctx.font="40px helvetica";
-        ctx.textAlign="right";
-        ctx.fillStyle="#FFFFFF";
-        ctx.fillText("( Menu )",engine.config("width")-this.xOffset,80);
 
 
         if(this.bonusQueue.length>0){
@@ -376,6 +444,19 @@
           ctx.textAlign="center";
           ctx.fillStyle="#FFFFFF";
           ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
+        }else if(this.mode==MENU){
+          ctx.fillStyle="rgba(0,0,0,0.5)";
+          ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+          ctx.fillRect(50,325,engine.config("width")-100,100);
+          ctx.fillRect(50,475,engine.config("width")-100,100);
+          ctx.fillRect(50,625,engine.config("width")-100,100);
+
+          ctx.font="80px helvetica";
+          ctx.textAlign="center";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText("Resume",engine.config("width")/2,400);
+          ctx.fillText("Restart",engine.config("width")/2,550);
+          ctx.fillText("Quit",engine.config("width")/2,700);
         }
         this.dirty=16;
       }

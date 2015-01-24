@@ -52,10 +52,43 @@ function CreateEngine(configArg){
 		      	y -= canvas.offsetTop;
 		      	x=Math.floor(x*(1/ratio));
 		      	y=Math.floor(y*(1/ratio));
-  				currentScene.click(x,y);
+
+		      	console.log("so much clicking "+x+","+y)
+
+		      	var consumed=false;
+		      	for(var i=0;i<viewList.length;i++){
+		      		console.log(" + checking view")
+		 			var view=viewList[i];
+		 			if("click" in view){
+		 				console.log(" + has click")
+		 				if(x>view.x && x<view.x+view.width && y>view.y && y<view.y+view.height){
+		 					console.log(" + coords match")
+		 					// TODO: this should recursively run through children
+		 					view.click(x,y)
+		 					consumed=true
+		 				}
+		 			}
+		 		}
+		 		if(!consumed){
+	  				currentScene.click(x,y)
+	  			}
   			}
   		}
   	}, false);
+
+  	function renderView(ctx,view){
+  		ctx.save();
+  		ctx.translate(view.x,view.y);
+  		if("render" in view){
+  			view.render(ctx);
+  		}
+  		if(view.children!=null){
+  			for(var i=0;i<view.children.length;i++){
+  				renderView(ctx,view.children[i]);
+  			}
+  		}
+  		ctx.restore();
+  	}
 
   	function render(){
   		// console.log("render");
@@ -63,7 +96,11 @@ function CreateEngine(configArg){
   			if("render" in currentScene){
   				currentScene.render(ctx);
   			}
-  		}else{
+  			for(var i=0;i<viewList.length;i++){
+		 		var view=viewList[i];
+		 		renderView(ctx,view);
+		 	}
+ 		}else{
   			ctx.fillStyle="#AAAAAA";
   			ctx.fillRect(0,0,config.width,config.height);
   			ctx.strokeStyle="#000000";
@@ -101,7 +138,20 @@ function CreateEngine(configArg){
 	    }
 	};
 
+	var viewList=[];
+
 	return {
+		// View management
+		clearViewList:function(){
+			viewList=[];
+		},
+		removeView:function(id){
+			// viewHash[id]=null;
+		},
+		addView:function(view){
+			viewList.push(view);
+
+		},
 		// Scene management
 		addScene:function(id,scene){
 			sceneHash[id]=scene;
@@ -113,6 +163,7 @@ function CreateEngine(configArg){
 						currentScene.exit();
 					}
 				}
+				viewList=[];
 				currentScene=sceneHash[id];
 				if("enter" in currentScene){
 					currentScene.enter();
