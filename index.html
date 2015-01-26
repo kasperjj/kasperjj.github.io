@@ -44,6 +44,7 @@
   engine.loadImage("piece_x4","images/piece_x4.png");
   engine.loadImage("piece_bomb_side","images/piece_bomb_side.png");
   engine.loadImage("piece_bomb_all","images/piece_bomb_all.png");
+  engine.loadImage("piece_shuffle","images/piece_shuffle.png");
 
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
@@ -116,12 +117,11 @@
         if(Math.random()<0.3)return 10000;
         if(Math.random()<0.3)return 10001;
         return 10002;
-      }else if(this.lastNumber==5){
+      }else if(this.lastNumber>=5){
         this.lastNumber=0;
-        return 10010;
-      }else if(this.lastNumber==6){
-        this.lastNumber=0;
-        return 10011;
+        if(Math.random()<0.3)return 10010;
+        if(Math.random()<0.3)return 10011;
+        return 10012;
       }else{
         this.lastNumber=0;
         return Math.floor(Math.random()*4+1);
@@ -232,6 +232,12 @@
         this.addBonusText("Blow away double, 500 points");
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
         return;
+      }else if(num==10012){
+        // shuffle
+        this.shuffleBoard(x,y)
+        this.addScore(100);
+        this.addBonusText("Shuffle board, 100 points");
+        // this.scheduleFunction(this.frameTime,this.collapseBlocks);
       }else if(num>=10000){
         // For now just return
         return;
@@ -298,6 +304,24 @@
           this.explodeSideBomb(queue[i].x,queue[i].y);
         }
       }
+    },
+    shuffleBoard:function(x,y){
+      this.blocks[x+y*this.columns].number=this.getNewBlockType();
+      var currentIndex = this.columns*this.rows-1, temporaryValue, randomIndex ;
+
+      // While there remain elements to shuffle...
+      while (0 !== currentIndex) {
+
+        // Pick a remaining element...
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        // And swap it with the current element.
+        temporaryValue = this.blocks[currentIndex];
+        this.blocks[currentIndex] = this.blocks[randomIndex];
+        this.blocks[randomIndex] = temporaryValue;
+      }
+      this.dirty=0
     },
     explodeSideBomb:function(x,y){
       for(var ix=0;ix<this.columns;ix++){
@@ -366,6 +390,8 @@
           img_id="piece_bomb_side";
         }else if(number==10011){
           img_id="piece_bomb_all";
+        }else if(number==10012){
+          img_id="piece_shuffle";
         }else if(number<10){
           img_id="piece_"+number;
         }
