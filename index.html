@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>Numbers</title>
+  <script src="levels.js"></script>
   <script src="canvasUtil.js"></script>
   <script src="flamingo.js"></script>
   <style>
@@ -21,6 +22,16 @@
   var GAME=0;
   var GAMEOVER=1;
   var MENU=2;
+  var LEVEL_INTRO=3
+
+  var ENDLESS=0
+  var PUZZLE=1
+  var TIMED=2
+  var LIMITED=3
+
+  var gameType=PUZZLE
+  var currentLevel=0
+  var currentStriped=0
 
   var engine=CreateEngine({
     fps:30,
@@ -45,6 +56,39 @@
   engine.loadImage("piece_bomb_side","images/piece_bomb_side.png");
   engine.loadImage("piece_bomb_all","images/piece_bomb_all.png");
   engine.loadImage("piece_shuffle","images/piece_shuffle.png");
+  engine.loadImage("piece_locked","images/piece_locked.png");
+  engine.loadImage("rock","images/rock.png");
+
+  engine.addScene("main-menu",{
+    dirty:0,
+    click:function(x,y){
+      if(y>475 && y<575){
+        // Puzzle
+        gameType=PUZZLE
+        currentLevel=0
+        engine.showScene("game")
+      }else if(y>625 && y<725){
+        // Endless
+        gameType=ENDLESS
+        engine.showScene("game")
+      }
+    },
+    render:function(ctx){
+      // Background
+      ctx.fillStyle="#88AADD";
+      ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+      ctx.fillStyle="rgba(0,0,0,0.6)";
+      ctx.fillRect(50,475,engine.config("width")-100,100);
+      ctx.fillRect(50,625,engine.config("width")-100,100);
+
+      ctx.font="80px helvetica";
+      ctx.textAlign="center";
+      ctx.fillStyle="#FFFFFF";
+      ctx.fillText("Select Game Mode",engine.config("width")/2,400);
+      ctx.fillText("Puzzle",engine.config("width")/2,550);
+      ctx.fillText("Endless",engine.config("width")/2,700);
+    }
+  });
 
   // localStorage["numbers-hiscore"]=0;
   engine.addScene("game",{
@@ -65,17 +109,12 @@
     dirty:0,
 
     enter:function(){
-      // load hiscore
-      if(localStorage["numbers-hiscore"]==null){
-        localStorage["numbers-hiscore"]=0;
-        this.hiscore=0;
-      }else{
-        this.hiscore=parseInt(localStorage["numbers-hiscore"]);
-      }
+      
       // setup blocks
       for(var i=0;i<this.columns*this.rows;i++){
         this.blocks.push({
-          number:-1
+          number:-1,
+          locked:false
         });
       }
       // setup colors
@@ -88,25 +127,6 @@
       for(var i=0;i<5;i++){
         this.colors.push("rgb(250,0,"+(50+i*40)+")");
       }
-
-      /*engine.addView({
-        id:"menu-button",
-        x:engine.config("width")-160,
-        y:70,
-        width:160,
-        height:40,
-        render:function(ctx){
-          ctx.fillStyle="#FF0000"
-          ctx.fillRect(0,0,this.width,this.height)
-          ctx.font="40px helvetica";
-          ctx.textAlign="left";
-          ctx.fillStyle="#FFFFFF";
-          ctx.fillText("( Menu )",0,0);
-        },
-        click:function(x,y){
-          console.log("menu button clicked")
-        }
-      });*/
       this.restartGame()
     },
     multiplier:1,
@@ -143,6 +163,17 @@
         this.traverse(x,y+1,number);
       }
     },
+    countStriped:function(){
+      var striped=0
+      for(var iy=0;iy<this.rows;iy++){
+        for(var ix=0;ix<this.columns;ix++){
+          if(this.blocks[ix+iy*this.columns].locked){
+            striped++
+          }
+        }
+      }
+      currentStriped=striped
+    },
     fillEmptyBlocks:function(){
       var fill=0;
       for(var i=0;i<this.columns;i++){
@@ -154,9 +185,31 @@
       if(fill>0){
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
       }else{
-        // this should be the end of a change loop, check for gameover
-        this.scheduleFunction(this.frameTime,this.checkGameOver);
+        if(this.couldCollapse()){
+          this.scheduleFunction(this.frameTime,this.collapseBlocks);
+        }else{
+          // this should be the end of a change loop, check for gameover
+          if(gameType==PUZZLE && currentStriped==0){
+            this.levelUp()
+          }else{
+            this.scheduleFunction(this.frameTime,this.checkGameOver);
+          }
+        }
       }
+    },
+    couldCollapse:function(){
+      for(var ix=0;ix<this.columns;ix++){
+          for(var iy=this.rows-1;iy>0;iy--){
+            var b=this.blocks[ix+iy*this.columns];
+            if(b.number==-1){
+              var b2=this.blocks[ix+(iy-1)*this.columns];
+              if(b2.number>0){
+                return true
+              }
+            }
+          }
+        }
+        return false
     },
     collapseBlocks:function(){
       var swapped=false;
@@ -165,7 +218,7 @@
             var b=this.blocks[ix+iy*this.columns];
             if(b.number==-1){
               var b2=this.blocks[ix+(iy-1)*this.columns];
-              if(b2.number>-1){
+              if(b2.number>0){
                 this.blocks[ix+iy*this.columns]=b2;
                 this.blocks[ix+(iy-1)*this.columns]=b;
                 swapped=true;
@@ -175,15 +228,17 @@
         
       }
       if(swapped){
-        // Do fast fill in for now.... will look better with proper animation
         for(var i=0;i<this.columns;i++){
           if(this.blocks[i].number==-1){
             this.blocks[i].number=this.getNewBlockType();
           }
         }
+        // this.fillEmptyBlocks()
         this.scheduleFunction(this.frameTime,this.collapseBlocks);
+        return true
       }else{
         this.scheduleFunction(this.frameTime,this.fillEmptyBlocks);
+        return false
       }
     },
     checkGameOver:function(){
@@ -193,12 +248,14 @@
             return false;
           }
           this.markCount=0;
-          for(var i=0;i<this.blocks.length;i++){
-            this.blocks[i].mark=false;
-          }
-          this.traverse(ix,iy,this.blocks[ix+iy*this.columns].number);
-          if(this.markCount>2){
-            return false;
+          if(this.blocks[ix+iy*this.columns].number>0){
+            for(var i=0;i<this.blocks.length;i++){
+              this.blocks[i].mark=false;
+            }
+            this.traverse(ix,iy,this.blocks[ix+iy*this.columns].number);
+            if(this.markCount>2){
+              return false;
+            }
           }
         }
       }
@@ -209,7 +266,7 @@
       this.score+=scoreAdd;
       if(this.score>this.hiscore  && this.score<10000000){
         this.hiscore=this.score;
-        localStorage["numbers-hiscore"]=this.hiscore;
+        localStorage["numbers-hiscore"+gameType+"-"+currentLevel]=this.hiscore;
       }
     },
     blockClicked: function(x,y){
@@ -218,7 +275,9 @@
         this.blocks[i].mark=false;
       }
       var num=this.blocks[x+y*this.columns].number;
-      if(num==10010){
+      if(num<=0){
+        return;
+      }else if(num==10010){
         // new style bomb
         this.explodeSideBomb(x,y);
         this.addScore(250);
@@ -237,7 +296,7 @@
         this.shuffleBoard(x,y)
         this.addScore(100);
         this.addBonusText("Shuffle board, 100 points");
-        // this.scheduleFunction(this.frameTime,this.collapseBlocks);
+        this.scheduleFunction(this.frameTime,this.collapseBlocks);
       }else if(num>=10000){
         // For now just return
         return;
@@ -249,10 +308,11 @@
         for(var i=0;i<this.blocks.length;i++){
           if(this.blocks[i].mark){
             this.blocks[i].number=-1;
+            this.blocks[i].locked=false;
             this.addScore(num*this.multiplier);
           }
         }
-        
+        this.countStriped()
         this.scheduleFunction(this.frameTime,function(){
           this.blocks[x+y*this.columns].number=num+1;
           if(num+1>this.largestPiece){
@@ -280,21 +340,27 @@
 
       for(var ix=0;ix<this.columns;ix++){
         var b=this.blocks[ix+y*this.columns];
-        if((b.number==10010 || b.number==10011)&& ix!=x){
-          queue.push({
-            x:ix,y:y,number:b.number
-          });
+        if(b.number>0){
+          if((b.number==10010 || b.number==10011)&& ix!=x){
+            queue.push({
+              x:ix,y:y,number:b.number
+            });
+          }
+          b.number=-1
+          b.locked=false
         }
-        b.number=-1;
       }
       for(var iy=0;iy<this.rows;iy++){
         var b=this.blocks[x+iy*this.columns];
-        if((b.number==10010 || b.number==10011)&& iy!=y){
-          queue.push({
-            x:x,y:iy,number:b.number
-          });
+        if(b.number>0){
+          if((b.number==10010 || b.number==10011)&& iy!=y){
+            queue.push({
+              x:x,y:iy,number:b.number
+            });
+          }
+          b.number=-1;
+          b.locked=false
         }
-        b.number=-1;
       }
       for(var i=0;i<queue.length;i++){
         var b=queue[i];
@@ -318,15 +384,20 @@
 
         // And swap it with the current element.
         temporaryValue = this.blocks[currentIndex];
-        this.blocks[currentIndex] = this.blocks[randomIndex];
-        this.blocks[randomIndex] = temporaryValue;
+        if(temporaryValue.number>0){
+          this.blocks[currentIndex] = this.blocks[randomIndex];
+          this.blocks[randomIndex] = temporaryValue;
+        }
       }
       this.dirty=0
     },
     explodeSideBomb:function(x,y){
       for(var ix=0;ix<this.columns;ix++){
         var b=this.blocks[ix+y*this.columns];
-        b.number=-1;
+        if(b.number>0){
+          b.number=-1;
+          b.locked=false
+        }
       }
     },
     click:function(x,y){
@@ -355,10 +426,40 @@
             this.quitGame()
           }
         }
+      }else if(this.mode==GAMEOVER){
+        if(y>475 && y<575){
+          // Restart
+          this.restartGame()
+        }else if(y>625 && y<725){
+          // Quit
+          this.quitGame()
+        }
+      }else if(this.mode=LEVEL_INTRO){
+        if(y>625 && y<725){
+          // Go
+          this.mode=GAME
+        }else if(y>775 && y<875){
+          // Quit
+          this.quitGame()
+        }
       }
       dirty=0
     },
+    levelUp:function(){
+      currentLevel++
+      this.restartGame()
+    },
+    quitGame:function(){
+      engine.showScene("main-menu");
+    },
     restartGame:function(){
+      // load hiscore
+      if(localStorage["numbers-hiscore"+gameType+"-"+currentLevel]==null){
+        localStorage["numbers-hiscore"+gameType+"-"+currentLevel]=0;
+        this.hiscore=0;
+      }else{
+        this.hiscore=parseInt(localStorage["numbers-hiscore"+gameType+"-"+currentLevel]);
+      }
       this.runQueue=[]
       this.bonusQueue=[]
       /*var newBlocks=[]
@@ -372,15 +473,36 @@
       for(var i=0;i<this.columns*this.rows;i++){
         this.blocks[i].number=-1
       }
+      if(gameType==ENDLESS){     
+        
+      }else if(gameType==PUZZLE){
+        var newBlocks=[]
+        for(var i=0;i<this.columns*this.rows;i++){
+          newBlocks.push({
+            number:levelData[currentLevel].data[i].n,
+            locked:levelData[currentLevel].data[i].l
+          });
+        }
+        this.blocks=newBlocks
+        this.countStriped()
+      }
       this.scheduleFunction(this.frameTime,this.collapseBlocks);
       this.score=0
       this.dirty=0;
-      this.mode=GAME
+      if(gameType==PUZZLE){
+        this.mode=LEVEL_INTRO
+      }else{
+        this.mode=GAME
+      }
     },
     renderBlock:function(ctx,x,y,number){
       if(number==-1)return;
         var img_id="piece_1";
-        if(number==10000){
+        if(number==0){
+          img_id="rock"
+          x-=5
+          y-=5
+        }else if(number==10000){
           img_id="piece_x2";
         }else if(number==10001){
           img_id="piece_x3";
@@ -429,16 +551,20 @@
         for(var ix=0;ix<this.columns;ix++){
           for(var iy=0;iy<this.rows;iy++){
             this.renderBlock(ctx,ix*this.blockWidth+this.xOffset,iy*this.blockHeight+this.yOffset,this.blocks[ix+iy*this.columns].number);
+            if(this.blocks[ix+iy*this.columns].locked && this.blocks[ix+iy*this.columns].number>-1){
+              ctx.drawImage(engine.image("piece_locked"),ix*this.blockWidth+this.xOffset,iy*this.blockHeight+this.yOffset);
+
+            }
           }
         }
-
+        
         // Score
-        ctx.font="60px helvetica";
-        ctx.textAlign="center";
-        ctx.fillStyle="#FFFFFF";
-        ctx.fillText(this.score,engine.config("width")/2,160);
         ctx.font="40px helvetica";
-        ctx.fillText("Score",engine.config("width")/2,105);
+        ctx.textAlign="left";
+        ctx.fillStyle="#FFFFFF";
+        ctx.fillText(this.score,this.xOffset,160);
+        ctx.font="20px helvetica";
+        ctx.fillText("Score",this.xOffset,120);
         // hiscore
         ctx.font="40px helvetica";
         ctx.textAlign="left";
@@ -447,6 +573,22 @@
         ctx.font="20px helvetica";
         ctx.fillText("HiScore",this.xOffset,40);
 
+        if(gameType==PUZZLE){
+          // Level
+          ctx.font="40px helvetica";
+          ctx.textAlign="left";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText(currentLevel+1,this.xOffset+200,160);
+          ctx.font="20px helvetica";
+          ctx.fillText("Level",this.xOffset+200,120);
+          // Striped
+          ctx.font="40px helvetica";
+          ctx.textAlign="left";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText(currentStriped,this.xOffset+400,160);
+          ctx.font="20px helvetica";
+          ctx.fillText("Striped",this.xOffset+400,120);
+        }
 
         if(this.bonusQueue.length>0){
           ctx.font="30px helvetica";
@@ -463,15 +605,20 @@
           }
         }
         if(this.mode==GAMEOVER){
-          ctx.fillStyle="rgba(0,0,0,0.5)";
+          ctx.fillStyle="rgba(0,0,0,0.6)";
           ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-          ctx.fillRect(0,engine.config("height")/2-100,engine.config("width"),200);
+          ctx.fillRect(50,475,engine.config("width")-100,100);
+          ctx.fillRect(50,625,engine.config("width")-100,100);
+          
           ctx.font="80px helvetica";
           ctx.textAlign="center";
           ctx.fillStyle="#FFFFFF";
-          ctx.fillText("Game Over!",engine.config("width")/2,engine.config("height")/2+20);
+          ctx.fillText("Game Over!",engine.config("width")/2,300);
+          ctx.fillText("Restart",engine.config("width")/2,550);
+          ctx.fillText("Quit",engine.config("width")/2,700);
+
         }else if(this.mode==MENU){
-          ctx.fillStyle="rgba(0,0,0,0.5)";
+          ctx.fillStyle="rgba(0,0,0,0.6)";
           ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
           ctx.fillRect(50,325,engine.config("width")-100,100);
           ctx.fillRect(50,475,engine.config("width")-100,100);
@@ -483,13 +630,30 @@
           ctx.fillText("Resume",engine.config("width")/2,400);
           ctx.fillText("Restart",engine.config("width")/2,550);
           ctx.fillText("Quit",engine.config("width")/2,700);
+        }else if(this.mode==LEVEL_INTRO){
+          ctx.fillStyle="rgba(0,0,0,0.6)";
+          ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+          ctx.fillRect(50,625,engine.config("width")-100,100);
+          ctx.fillRect(50,775,engine.config("width")-100,100);
+
+          ctx.font="80px helvetica";
+          ctx.textAlign="center";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText("Level "+(currentLevel+1),engine.config("width")/2,400);
+          ctx.font="40px helvetica";
+          ctx.fillText(levelData[currentLevel].title,engine.config("width")/2,480);
+
+          ctx.font="80px helvetica";
+          ctx.fillText("Start",engine.config("width")/2,700);
+          ctx.fillText("Quit",engine.config("width")/2,850);
         }
+
         this.dirty=16;
       }
       this.dirty--;
     }
   });
-  engine.showScene("game");
+  engine.showScene("main-menu");
   engine.start();
 
 
