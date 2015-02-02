@@ -61,22 +61,59 @@
   engine.loadImage("piece_locked","images/piece_locked.png");
   engine.loadImage("rock","images/rock.png");
 
+  engine.addScene("profile",{
+    dirty:0,
+    click:function(x,y){
+      if(y>engine.config("height")-400+20 && y<engine.config("height")-400+20+150){
+        // back
+        engine.showScene("main-menu")
+      }
+      this.dirty=0
+    },
+    render:function(ctx){
+      if(this.dirty==0){
+        // Background
+        ctx.fillStyle="#AAAAAA";
+        ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+
+        
+        ctx.fillStyle="rgba(0,0,0,0.6)";
+        ctx.fillRect(20,engine.config("height")-400+20,engine.config("width")-40,150);
+        
+        ctx.font="80px helvetica";
+        ctx.textAlign="center";
+        ctx.fillStyle="#FFFFFF";
+        ctx.fillText("Profile!",engine.config("width")/2,100);
+ 
+        ctx.fillText("back",engine.config("width")/2,engine.config("height")-300+20);
+
+        this.dirty=16
+      }
+      this.dirty--
+    }
+  })
+
   engine.addScene("main-menu",{
     dirty:0,
     click:function(x,y){
-      if(y>475 && y<575){
-        // Puzzle
-        gameType=PUZZLE
-        currentLevel=0
-        engine.showScene("game")
-      }else if(y>625 && y<725){
-        // Endless
-        gameType=ENDLESS
-        engine.showScene("game")
-      }else if(y>775 && y<875){
+      if(y>engine.config("height")-400+20 && y<engine.config("height")-400+20+150){
         // Battle
         gameType=BATTLE
         engine.showScene("game")
+      }else if(y>engine.config("height")-400+20+150){
+        if(x<20+(engine.config("width")-80)/3+20){
+          // Puzzle
+          gameType=PUZZLE
+          currentLevel=0
+          engine.showScene("game")
+        }else if(x<20+((engine.config("width")-80)/3)*2+40){
+          // Endless
+          gameType=ENDLESS
+          engine.showScene("game")
+        }else{
+          // Profile
+          engine.showScene("profile")
+        }
       }
       this.dirty=0
     },
@@ -85,18 +122,33 @@
         // Background
         ctx.fillStyle="#88AADD";
         ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+
+        // Menu Background
+        ctx.fillStyle="#FFAA00";
+        ctx.fillRect(0,engine.config("height")-400,engine.config("width"),400);
+
         ctx.fillStyle="rgba(0,0,0,0.6)";
-        ctx.fillRect(50,475,engine.config("width")-100,100);
-        ctx.fillRect(50,625,engine.config("width")-100,100);
-        ctx.fillRect(50,775,engine.config("width")-100,100);
+        ctx.fillRect(20,engine.config("height")-400+20,engine.config("width")-40,150);
+        ctx.fillRect(20,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
+        ctx.fillRect(20+(engine.config("width")-80)/3+20,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
+        ctx.fillRect(20+((engine.config("width")-80)/3)*2+40,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
 
         ctx.font="80px helvetica";
         ctx.textAlign="center";
         ctx.fillStyle="#FFFFFF";
-        ctx.fillText("Select Game Mode",engine.config("width")/2,400);
-        ctx.fillText("Puzzle",engine.config("width")/2,550);
-        ctx.fillText("Endless",engine.config("width")/2,700);
-        ctx.fillText("Battle",engine.config("width")/2,850);
+        ctx.fillText("Super Robot",engine.config("width")/2,100);
+        ctx.fillText("Number Game",engine.config("width")/2,200);
+
+        ctx.fillText("Battle",engine.config("width")/2,engine.config("height")-300+20);
+
+        ctx.font="50px helvetica";
+        ctx.fillText("Puzzle",20+((engine.config("width")-80)/3)/2,engine.config("height")-400+280);
+        ctx.fillText("Endless",engine.config("width")/2,engine.config("height")-400+280);
+        ctx.fillText("Profile",60+((engine.config("width")-80)/3)*2+((engine.config("width")-80)/3)/2,engine.config("height")-400+280);
+
+        ctx.font="30px helvetica";
+        ctx.fillStyle="rgba(0,0,0,0.2)";
+        ctx.fillText("(c) 2015 - Fabulous Flamingo",engine.config("width")/2,engine.config("height")-20);
         this.dirty=16
       }
       this.dirty--
