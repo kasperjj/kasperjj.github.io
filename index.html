@@ -61,6 +61,10 @@
   engine.loadImage("piece_locked","images/piece_locked.png");
   engine.loadImage("rock","images/rock.png");
 
+  engine.loadImage("robot_1_1","images/robot_1_1.png");
+  engine.loadImage("robot_1_2","images/robot_1_2.png");
+  engine.loadImage("robot_1_3","images/robot_1_3.png");
+
   engine.addScene("profile",{
     dirty:0,
     click:function(x,y){
@@ -95,6 +99,7 @@
 
   engine.addScene("main-menu",{
     dirty:0,
+    roboFrame:1,
     click:function(x,y){
       if(y>engine.config("height")-400+20 && y<engine.config("height")-400+20+150){
         // Battle
@@ -120,8 +125,14 @@
     render:function(ctx){
       if(this.dirty==0){
         // Background
-        ctx.fillStyle="#88AADD";
+        ctx.fillStyle="#BBCCFF";
         ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
+
+        if(this.roboFrame>3){
+          ctx.drawImage(engine.image("robot_1_"+(6-this.roboFrame)),engine.config("width")/2-100,engine.config("height")-800);
+        }else{
+          ctx.drawImage(engine.image("robot_1_"+this.roboFrame),engine.config("width")/2-100,engine.config("height")-800);
+        }
 
         // Menu Background
         ctx.fillStyle="#FFAA00";
@@ -149,7 +160,11 @@
         ctx.font="30px helvetica";
         ctx.fillStyle="rgba(0,0,0,0.2)";
         ctx.fillText("(c) 2015 - Fabulous Flamingo",engine.config("width")/2,engine.config("height")-20);
-        this.dirty=16
+        this.dirty=30
+        this.roboFrame++
+        if(this.roboFrame==5){
+          this.roboFrame=1
+        }
       }
       this.dirty--
     }
