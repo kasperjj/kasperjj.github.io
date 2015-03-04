@@ -23,13 +23,11 @@
   var GAMEOVER=1;
   var MENU=2;
   var LEVEL_INTRO=3
-  var BATTLESUMMARY=4
 
   var ENDLESS=0
   var PUZZLE=1
   var TIMED=2
   var LIMITED=3
-  var BATTLE=4
 
   var gameType=PUZZLE
   var currentLevel=0
@@ -61,9 +59,6 @@
   engine.loadImage("piece_locked","images/piece_locked.png");
   engine.loadImage("rock","images/rock.png");
 
-  engine.loadImage("robot_1_1","images/robot_1_1.png");
-  engine.loadImage("robot_1_2","images/robot_1_2.png");
-  engine.loadImage("robot_1_3","images/robot_1_3.png");
 
   engine.addScene("profile",{
     dirty:0,
@@ -101,11 +96,7 @@
     dirty:0,
     roboFrame:1,
     click:function(x,y){
-      if(y>engine.config("height")-400+20 && y<engine.config("height")-400+20+150){
-        // Battle
-        gameType=BATTLE
-        engine.showScene("game")
-      }else if(y>engine.config("height")-400+20+150){
+      if(y>engine.config("height")-400+20+150){
         if(x<20+(engine.config("width")-80)/3+20){
           // Puzzle
           gameType=PUZZLE
@@ -128,18 +119,12 @@
         ctx.fillStyle="#BBCCFF";
         ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
 
-        if(this.roboFrame>3){
-          ctx.drawImage(engine.image("robot_1_"+(6-this.roboFrame)),engine.config("width")/2-100,engine.config("height")-800);
-        }else{
-          ctx.drawImage(engine.image("robot_1_"+this.roboFrame),engine.config("width")/2-100,engine.config("height")-800);
-        }
 
         // Menu Background
         ctx.fillStyle="#FFAA00";
-        ctx.fillRect(0,engine.config("height")-400,engine.config("width"),400);
+        ctx.fillRect(0,engine.config("height")-260,engine.config("width"),260);
 
         ctx.fillStyle="rgba(0,0,0,0.6)";
-        ctx.fillRect(20,engine.config("height")-400+20,engine.config("width")-40,150);
         ctx.fillRect(20,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
         ctx.fillRect(20+(engine.config("width")-80)/3+20,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
         ctx.fillRect(20+((engine.config("width")-80)/3)*2+40,engine.config("height")-400+20+150+20,(engine.config("width")-80)/3,150);
@@ -147,10 +132,7 @@
         ctx.font="80px helvetica";
         ctx.textAlign="center";
         ctx.fillStyle="#FFFFFF";
-        ctx.fillText("Super Robot",engine.config("width")/2,100);
-        ctx.fillText("Number Game",engine.config("width")/2,200);
-
-        ctx.fillText("Battle",engine.config("width")/2,engine.config("height")-300+20);
+        ctx.fillText("Number Game",engine.config("width")/2,100);
 
         ctx.font="50px helvetica";
         ctx.fillText("Puzzle",20+((engine.config("width")-80)/3)/2,engine.config("height")-400+280);
@@ -216,15 +198,28 @@
     multiplier:1,
     markCount:0,
     getNewBlockType:function(){
-      if(this.lastNumber==4){
+      /*if(this.lastNumber==3){
         this.lastNumber=0;
         if(Math.random()<0.3)return 10000;
         if(Math.random()<0.3)return 10001;
         return 10002;
       }else if(this.lastNumber>=5){
         this.lastNumber=0;
-        if(Math.random()<0.3)return 10010;
-        if(Math.random()<0.3)return 10011;
+        // if(Math.random()<0.3)return 10010;
+        // if(Math.random()<0.3)return 10011;
+        return 10012;
+      }*/
+      if(this.lastNumber==3){
+        this.lastNumber=0;
+        return 10000;
+      }else if(this.lastNumber==4){
+        this.lastNumber=0;
+        return 10001;
+      }else if(this.lastNumber==5){
+        this.lastNumber=0;
+        return 10002;
+      }else if(this.lastNumber==6){
+        this.lastNumber=0;
         return 10012;
       }
       this.lastNumber=0;
@@ -343,15 +338,8 @@
           }
         }
       }
-      if(gameType==BATTLE){
-        // this.shuffleBoard()
-        this.scheduleFunction(this.frameTime,this.shuffleBoard);
-        this.addBonusText("No more moves - shuffle!");
-        return false
-      }else{
-        this.mode=GAMEOVER;
-        return true;
-      }
+      this.mode=GAMEOVER;
+      return true;
     },
     addScore:function(scoreAdd){
       this.score+=scoreAdd;
@@ -406,34 +394,20 @@
         this.countStriped()
         this.scheduleFunction(this.frameTime,function(){
           this.blocks[x+y*this.columns].number=num+1;
-          if(gameType==BATTLE){
-            if(num==2){
-              // this.attackScore+=num*this.markCount*this.multiplier
-            }else if(num==3){
-              this.attackScore+=num*this.markCount*this.multiplier
-            }else if(num==4){
-              this.defenseScore+=num*this.markCount*this.multiplier
-            }else if(num==5){
-              this.attackScore+=num*this.markCount*this.multiplier*10
-            }else if(num==6){
-              this.stealthScore+=num*this.markCount*this.multiplier*10
-            }
-          }else{
-            if(num+1>this.largestPiece){
-              this.largestPiece=num+1;
-              this.addScore(this.largestPiece*this.largestPiece);
-              this.addBonusText("New piece "+this.largestPiece+", "+this.largestPiece*this.largestPiece+" points");
-            }
-            if(this.markCount>=15){
-              this.addScore(250);
-              this.addBonusText("15+ Group, 250 points");
-            }else if(this.markCount>=10){
-              this.addScore(100);
-              this.addBonusText("10+ Group, 100 points");
-            }else if(this.markCount>=5){
-              this.addScore(25);
-              this.addBonusText("5+ Group, 25 points");
-            }
+          if(num+1>this.largestPiece){
+            this.largestPiece=num+1;
+            this.addScore(this.largestPiece*this.largestPiece);
+            this.addBonusText("New piece "+this.largestPiece+", "+this.largestPiece*this.largestPiece+" points");
+          }
+          if(this.markCount>=15){
+            this.addScore(250);
+            this.addBonusText("15+ Group, 250 points");
+          }else if(this.markCount>=10){
+            this.addScore(100);
+            this.addBonusText("10+ Group, 100 points");
+          }else if(this.markCount>=5){
+            this.addScore(25);
+            this.addBonusText("5+ Group, 25 points");
           }
           this.scheduleFunction(this.frameTime,this.collapseBlocks);
         });
@@ -671,22 +645,6 @@
             }
           }
         }
-        if(gameType!=BATTLE){
-          // Score
-          ctx.font="40px helvetica";
-          ctx.textAlign="left";
-          ctx.fillStyle="#FFFFFF";
-          ctx.fillText(this.score,this.xOffset,160);
-          ctx.font="20px helvetica";
-          ctx.fillText("Score",this.xOffset,120);
-          // hiscore
-          ctx.font="40px helvetica";
-          ctx.textAlign="left";
-          ctx.fillStyle="#FFFFFF";
-          ctx.fillText(this.hiscore,this.xOffset,80);
-          ctx.font="20px helvetica";
-          ctx.fillText("HiScore",this.xOffset,40);
-        }
 
         if(gameType==PUZZLE){
           // Level
@@ -703,27 +661,23 @@
           ctx.fillText(currentStriped,this.xOffset+400,160);
           ctx.font="20px helvetica";
           ctx.fillText("Striped",this.xOffset+400,120);
-        }else if(gameType==BATTLE){
-          // Level
-          ctx.font="50px helvetica";
-          ctx.textAlign="center";
+        }else{
+          // Score
+          ctx.font="40px helvetica";
+          ctx.textAlign="left";
           ctx.fillStyle="#FFFFFF";
-          var timeLeft=Math.floor(60-(((new Date().getTime())-this.startTime)/1000))
-          if(timeLeft<0){
-            timeLeft=0
-            this.mode=BATTLESUMMARY
-          }
-          ctx.fillText(timeLeft,engine.config("width")/2,90);
-          ctx.fillText(this.stealthScore,engine.config("width")/2+175,175);
-          ctx.fillText(this.attackScore,engine.config("width")/2,175);
-          ctx.fillText(this.defenseScore,engine.config("width")/2-175,175);
-
-          ctx.font="30px helvetica";
-          ctx.fillText("Time",engine.config("width")/2,45);
-          ctx.fillText("Stealth",engine.config("width")/2+175,130);
-          ctx.fillText("Attack",engine.config("width")/2,130);
-          ctx.fillText("Defense",engine.config("width")/2-175,130);
+          ctx.fillText(this.score,this.xOffset,160);
+          ctx.font="20px helvetica";
+          ctx.fillText("Score",this.xOffset,120);
+          // hiscore
+          ctx.font="40px helvetica";
+          ctx.textAlign="left";
+          ctx.fillStyle="#FFFFFF";
+          ctx.fillText(this.hiscore,this.xOffset,80);
+          ctx.font="20px helvetica";
+          ctx.fillText("HiScore",this.xOffset,40);
         }
+
 
         if(this.bonusQueue.length>0){
           ctx.font="30px helvetica";
@@ -752,15 +706,6 @@
           ctx.fillText("Restart",engine.config("width")/2,550);
           ctx.fillText("Quit",engine.config("width")/2,700);
 
-        }else if(this.mode==BATTLESUMMARY){
-          ctx.fillStyle="rgba(0,0,0,0.6)";
-          ctx.fillRect(0,0,engine.config("width"),engine.config("height"));
-          
-          ctx.font="80px helvetica";
-          ctx.textAlign="center";
-          ctx.fillStyle="#FFFFFF";
-          ctx.fillText("Fight!",engine.config("width")/2,300);
-          
         }else if(this.mode==MENU){
           ctx.fillStyle="rgba(0,0,0,0.6)";
           ctx.fillRect(0,0,engine.config("width"),engine.config("height"));

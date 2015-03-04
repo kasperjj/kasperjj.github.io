@@ -89,6 +89,21 @@ function CreateEngine(configArg){
   		}
   		ctx.restore();
   	}
+/*
+  	var tmp=[]
+        for(var i=0;i<4*4;i++){
+        	tmp.push(0)
+        }
+        for(var iy=0;iy<4;iy++){
+        	for(var ix=0;ix<4;ix++){
+        		tmp[ix+iy*4]=buffer[iy+ix*4]
+        	}
+        }
+		for(var iy=0;iy<4;iy++){
+        	for(var ix=0;ix<4;ix++){
+        		buffer[ix+iy*4]=tmp[(3-ix)+iy*4]
+        	}
+        }*/
 
   	function render(){
   		// console.log("render");
