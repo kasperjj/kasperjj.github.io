@@ -5,31 +5,31 @@ function CreateEngine(configArg){
 	var imageHash={};
 
 	// configuration
-	var config=configArg || {};
-	config.fps=config.fps || 30;
-	config.width=config.width || 640;
-	config.height=config.height || 480;
+	var config=configArg || {}
+	config.fps=config.fps || 30
 
 	// setup
 	var canvas=document.getElementById("canvas");
-	canvas.width=config.width;
-	canvas.height=config.height;
 	window.addEventListener("resize", OnResizeCalled, false); 
  	var ratio=1;
 
 	function OnResizeCalled() {
-		var actualWidth=window.innerWidth; 
-		var actualHeight=window.innerHeight; 
-		var ratioX=actualWidth/config.width; 
-		var ratioY=actualHeight/config.height; 
-
-		ratio = Math.min(ratioX, ratioY);
-		canvas.style.width = config.width*ratio + "px"; 
-		canvas.style.height = config.height*ratio + "px"; 
+		config.width=window.innerWidth*2
+		config.height=window.innerHeight*2
+		canvas.width=config.width;
+		canvas.height=config.height;
+		canvas.style.width ="100%"; 
+		canvas.style.height = "100%"; 
+		for(id in sceneHash){
+			sceneHash[id].width=config.width
+			sceneHash[id].height=config.height
+			sceneHash[id].dirty=true
+		}
 	}
 	OnResizeCalled();
 
   	var ctx = canvas.getContext("2d");
+  	ctx.translate(0.5, 0.5);
 
   	var clickEvent = ('ontouchstart' in window ? 'touchend' : 'mousedown');
 
@@ -108,13 +108,16 @@ function CreateEngine(configArg){
   	function render(){
   		// console.log("render");
   		if(currentScene!=null){
-  			if("render" in currentScene){
-  				currentScene.render(ctx);
+			if(currentScene.dirty){
+  				if("render" in currentScene){
+  					currentScene.render(ctx);
+  					currentScene.dirty=false
+  				}
   			}
-  			for(var i=0;i<viewList.length;i++){
+	/*  			for(var i=0;i<viewList.length;i++){
 		 		var view=viewList[i];
 		 		renderView(ctx,view);
-		 	}
+		 	}*/
  		}else{
   			ctx.fillStyle="#AAAAAA";
   			ctx.fillRect(0,0,config.width,config.height);
@@ -165,11 +168,13 @@ function CreateEngine(configArg){
 		},
 		addView:function(view){
 			viewList.push(view);
-
 		},
 		// Scene management
 		addScene:function(id,scene){
 			sceneHash[id]=scene;
+			scene.width=config.width
+			scene.height=config.height
+			scene.dirty=true
 		},
 		showScene:function(id){
 			if(id in sceneHash){
